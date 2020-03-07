@@ -18,7 +18,11 @@ val `infrastructure` = (project in file("infrastructure"))
 
 val `api-server` = (project in file("api-server"))
   .settings(
-    name := "api-server"
+    name := "api-server",
+    libraryDependencies ++= Seq(
+      "com.typesafe.akka" %% "akka-http"   % akkaHttpVersion,
+      "com.typesafe.akka" %% "akka-stream" % akkaStreamVersion,
+    )
   )
   .dependsOn(
     `domain`,
