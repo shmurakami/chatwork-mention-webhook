@@ -5,6 +5,12 @@ val `domain` = (project in file("domain"))
     name := "domain"
   )
 
+val `use-case` = (project in file("use-case"))
+  .settings(
+    name := "use-case"
+  )
+  .dependsOn(`domain`)
+
 val `api-server` = (project in file("api-server"))
   .settings(
     name := "api-server"
@@ -17,5 +23,6 @@ val root = (project in file("."))
   )
   .aggregate(
     `api-server`,
+    `use-case`,
     `domain`,
   )
