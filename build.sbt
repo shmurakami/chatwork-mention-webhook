@@ -11,11 +11,20 @@ val `use-case` = (project in file("use-case"))
   )
   .dependsOn(`domain`)
 
+val `infrastructure` = (project in file("infrastructure"))
+  .settings(
+    name := "infrastructure"
+  )
+
 val `api-server` = (project in file("api-server"))
   .settings(
     name := "api-server"
   )
-  .dependsOn(`domain`)
+  .dependsOn(
+    `domain`,
+    `use-case`,
+    `infrastructure`,
+  )
 
 val root = (project in file("."))
   .settings(
