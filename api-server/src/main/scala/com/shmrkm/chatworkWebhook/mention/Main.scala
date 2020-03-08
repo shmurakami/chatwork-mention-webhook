@@ -1,9 +1,9 @@
-package com.shmrkm.webhook.mention.chatwork
+package com.shmrkm.chatworkWebhook.mention
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.stream.ActorMaterializer
-import com.shmrkm.webhook.mention.chatwork.controller.WebhookController
+import com.shmrkm.chatworkWebhook.mention.controller.WebhookController
 import com.typesafe.config.Config
 
 import scala.io.StdIn

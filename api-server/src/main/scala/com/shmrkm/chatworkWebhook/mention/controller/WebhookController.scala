@@ -1,4 +1,4 @@
-package com.shmrkm.webhook.mention.chatwork.controller
+package com.shmrkm.chatworkWebhook.mention.controller
 
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
