@@ -5,6 +5,9 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
 import akka.stream.ActorMaterializer
 import akka.http.scaladsl.server.Directives._
+import com.shmrkm.webhook.mention.chatwork.controller.WebhookController
+import com.typesafe.config.Config
+import com.webhook.mention.chatwork.useCase.WebhookUseCase
 
 import scala.io.StdIn
 
@@ -14,16 +17,15 @@ object Main {
     implicit val materializer = ActorMaterializer()
     implicit val executionContext = system.dispatcher
 
-    val route =
-      path("hello") {
-        get {
-          complete(HttpEntity(ContentTypes.`application/json`, """{"success":true}"""))
-        }
-      }
+    val routes = new Routes(
+      new WebhookController(new WebhookUseCase)
+    )
 
-    val host = "localhost"
-    val port = 18080
-    val bidingFuture = Http().bindAndHandle(route, host, port)
+    val config: Config = system.settings.config.getConfig("chatwork-mention-webhook.api-server")
+
+    val host = config.getString("host")
+    val port = config.getInt("port")
+    val bidingFuture = Http().bindAndHandle(routes.routes, host, port)
 
     println(s"Server online at http://${host}:${port}/\nPress RETURN to stop...")
     StdIn.readLine()
