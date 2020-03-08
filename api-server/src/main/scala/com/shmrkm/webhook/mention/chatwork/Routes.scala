@@ -1,8 +1,7 @@
 package com.shmrkm.webhook.mention.chatwork
 
-import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
-import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Route
 import com.shmrkm.webhook.mention.chatwork.controller.WebhookController
 
 class Routes(
