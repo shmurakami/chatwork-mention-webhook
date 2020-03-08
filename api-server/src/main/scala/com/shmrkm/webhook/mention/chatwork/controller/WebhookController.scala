@@ -13,10 +13,9 @@ class WebhookController(useCase: WebhookUseCase) {
   def execute: Route =
     extractExecutionContext { implicit ec =>
       parameters('value.as[String]).as(WebhookRequest) { request =>
-        val result = Future.successful(request.value)
-        onSuccess(result) { response =>
-          complete(HttpEntity(ContentTypes.`application/json`, s"""{"success":true, "value": "${response}"}"""))
-//          complete(WebhookResponse().asJson(result))
+        val response: Future[WebhookResponse] = Future.successful(WebhookResponse(request.value))
+        onSuccess(response) { res =>
+          complete(HttpEntity(ContentTypes.`application/json`, res.json))
         }
       }
     }
