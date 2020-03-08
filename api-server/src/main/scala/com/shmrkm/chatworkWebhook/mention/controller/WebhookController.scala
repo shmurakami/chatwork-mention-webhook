@@ -13,14 +13,17 @@ class WebhookController() {
   def execute: Route =
     extractExecutionContext { implicit ec =>
       entity(as[WebhookRequest]) { params =>
-        val command = params.mentionCommand
-        // TODO do this via stream
-        // TODO retrieve sender account name through chatwork api, save record to redis, request server push to client
-        // redis value should be read model
-        val response: Future[WebhookResponse] = Future.successful(WebhookResponse("value"))
-        onSuccess(response) { res =>
-          complete(res)
+        onSuccess(process(params)) { response =>
+          complete(response)
         }
       }
     }
+
+  def process(request: WebhookRequest): Future[WebhookResponse] = {
+    val command = request.mentionCommand
+    // TODO do this via stream
+    // TODO retrieve sender account name through chatwork api, save record to redis, request server push to client
+    // redis value should be read model
+    Future.successful(WebhookResponse("value"))
+  }
 }
