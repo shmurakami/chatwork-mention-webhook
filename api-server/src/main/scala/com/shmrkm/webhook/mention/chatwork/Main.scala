@@ -18,7 +18,7 @@ object Main {
     implicit val executionContext = system.dispatcher
 
     val routes = new Routes(
-      new WebhookController(new WebhookUseCase)
+      new WebhookController
     )
 
     val config: Config = system.settings.config.getConfig("chatwork-mention-webhook.api-server")

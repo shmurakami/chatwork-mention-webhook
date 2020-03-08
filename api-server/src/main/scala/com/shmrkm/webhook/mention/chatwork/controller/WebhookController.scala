@@ -4,11 +4,10 @@ import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import com.webhook.mention.chatwork.protocol.{WebhookRequest, WebhookResponse}
-import com.webhook.mention.chatwork.useCase.WebhookUseCase
 
 import scala.concurrent.Future
 
-class WebhookController(useCase: WebhookUseCase) {
+class WebhookController() {
 
   def execute: Route =
     extractExecutionContext { implicit ec =>
