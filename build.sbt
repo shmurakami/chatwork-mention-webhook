@@ -16,6 +16,14 @@ val `infrastructure` = (project in file("infrastructure"))
     name := "infrastructure"
   )
 
+val `application` = (project in file("application"))
+  .settings(
+    name := "application",
+    libraryDependencies ++= Seq(
+      "com.typesafe.akka" %% "akka-actor" % akkaVersion,
+    )
+  )
+
 val `api-server` = (project in file("api-server"))
   .settings(
     name := "api-server",
@@ -34,6 +42,7 @@ val `api-server` = (project in file("api-server"))
     `domain`,
     `use-case`,
     `infrastructure`,
+    `application`,
   )
 
 val root = (project in file("."))
