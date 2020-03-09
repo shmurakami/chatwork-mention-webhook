@@ -24,6 +24,6 @@ class WebhookController() {
     // TODO do this via stream
     // TODO retrieve sender account name through chatwork api, save record to redis, request server push to client
     // redis value should be read model
-    Future.successful(WebhookResponse("value"))
+    Future.successful(WebhookResponse())
   }
 }
