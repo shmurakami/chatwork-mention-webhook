@@ -19,6 +19,7 @@ object Main {
       new MentionController,
     )
 
+    // TODO not good way to get config?
     val config: Config = system.settings.config.getConfig("chatwork-mention-webhook.api-server")
 
     val host = config.getString("host")

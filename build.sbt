@@ -13,7 +13,19 @@ val `use-case` = (project in file("use-case"))
 
 val `infrastructure` = (project in file("infrastructure"))
   .settings(
-    name := "infrastructure"
+    name := "infrastructure",
+    libraryDependencies ++= Seq(
+      "com.typesafe.akka" %% "akka-actor" % akkaVersion,
+      "com.typesafe.akka" %% "akka-http"  % akkaHttpVersion,
+      "com.typesafe.akka" %% "akka-stream" % akkaStreamVersion,
+      "io.circe" %% "circe-core" % circeVersion,
+      "io.circe" %% "circe-generic" % circeVersion,
+      "io.circe" %% "circe-parser" % circeVersion,
+      "de.heikoseeberger" %% "akka-http-circe" % akkaCirceVersion,
+    )
+  )
+  .dependsOn(
+    `domain`
   )
 
 val `application` = (project in file("application"))
@@ -22,6 +34,10 @@ val `application` = (project in file("application"))
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-actor" % akkaVersion,
     )
+  )
+  .dependsOn(
+    `infrastructure`,
+    `domain`,
   )
 
 val `api-server` = (project in file("api-server"))
