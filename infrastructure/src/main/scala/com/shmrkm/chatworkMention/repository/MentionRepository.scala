@@ -1,15 +1,31 @@
 package com.shmrkm.chatworkMention.repository
 
 import com.shmrkm.chatworkWebhook.domain.model.ToAccountId
-import shapeless.Succ
+import com.redis._
+import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
-// TODO domain
-case class MentionMessage(value: Any)
-case class MentionList(list: Seq[MentionMessage])
+trait MentionRepository {
+  def store(accountId: ToAccountId, list: MentionList): Boolean
+  def resolve(accountId: ToAccountId): Future[MentionList]
+}
 
-class MentionRepository {
-  def store(list: MentionList): Future[Boolean] = ???
-  def resolve(accountId: ToAccountId): Future[Some[MentionList]] = ???
+class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: ExecutionContext) extends MentionRepository {
+
+  override def store(accountId: ToAccountId, list: MentionList): Boolean = {
+    import io.circe.generic.auto._, io.circe.syntax._
+
+    redisClient.set(readModelKey(accountId), list.asJson)
+  }
+
+  override def resolve(accountId: ToAccountId): Future[MentionList] = Future {
+    MentionList(Seq.empty)
+  }
+
+  private def readModelKey(accountId: ToAccountId): String = {
+    val md = java.security.MessageDigest.getInstance("SHA-1")
+    val key = s"read-model-${accountId.value}"
+    md.digest(key.getBytes("UTF-8")).map("%02x".format(_)).mkString
+  }
 }

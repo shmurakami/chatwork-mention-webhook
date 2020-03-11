@@ -13,9 +13,9 @@ class Routes(
       get {
         mentionController.routes
       }
-    } ~ path("mention") {
+    } ~ path("mention-webhook") {
       post {
-        webhookController.execute
+        webhookController.rouete
       }
     }
   }

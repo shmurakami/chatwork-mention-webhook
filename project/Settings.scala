@@ -7,4 +7,6 @@ object Settings {
   val circeVersion = "0.12.3"
   val akkaCirceVersion = "1.31.0"
 
+  val redisClientVersion = "3.20"
+
 }

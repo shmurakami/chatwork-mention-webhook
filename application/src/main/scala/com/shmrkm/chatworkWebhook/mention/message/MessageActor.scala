@@ -2,7 +2,8 @@ package com.shmrkm.chatworkWebhook.mention.message
 
 import akka.actor.{Actor, Props}
 import com.shmrkm.chatworkMention.repository.ChatworkApiRepository
-import com.shmrkm.chatworkWebhook.domain.model.{MessageId, RoomId}
+import com.shmrkm.chatworkWebhook.domain.model.MessageId
+import com.shmrkm.chatworkWebhook.domain.model.room.RoomId
 
 // TODO where is good to place protocol class?
 case class MessageCreated(roomId: RoomId, messageId: MessageId)

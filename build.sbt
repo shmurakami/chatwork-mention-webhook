@@ -22,6 +22,7 @@ val `infrastructure` = (project in file("infrastructure"))
       "io.circe" %% "circe-generic" % circeVersion,
       "io.circe" %% "circe-parser" % circeVersion,
       "de.heikoseeberger" %% "akka-http-circe" % akkaCirceVersion,
+      "net.debasishg" %% "redisclient" % redisClientVersion,
     )
   )
   .dependsOn(
