@@ -12,15 +12,19 @@ trait MentionRepository {
 }
 
 class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: ExecutionContext) extends MentionRepository {
+  import io.circe.generic.auto._, io.circe.syntax._, io.circe.Json._, io.circe.parser._
 
   override def store(accountId: ToAccountId, list: MentionList): Boolean = {
-    import io.circe.generic.auto._, io.circe.syntax._
 
     redisClient.set(readModelKey(accountId), list.asJson)
   }
 
   override def resolve(accountId: ToAccountId): Future[MentionList] = Future {
-    MentionList(Seq.empty)
+    val stored = redisClient.get(readModelKey(accountId)).getOrElse("{}")
+    parse(stored).right.flatMap(_.as[MentionList]) match {
+      case Right(mentionList) => mentionList
+      case Left(_) => MentionList(Seq.empty)
+    }
   }
 
   private def readModelKey(accountId: ToAccountId): String = {

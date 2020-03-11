@@ -40,16 +40,6 @@ class WebhookController(implicit system: ActorSystem) {
     val chatworkApiRepository = new ChatworkApiRepository(apiUrl, token)
     val mentionRepository = new MentionRepositoryRedisImpl(new RedisClient(redisConfig.getString("host"), redisConfig.getInt("port")))
 
-//    chatworkApiRepository.resolveAccount(request.roomId, request.messageId).onComplete {
-//      case Success(acc: Option[AccountName]) => acc.map {
-//        case accountName => WebhookResponse()
-//        case _ => // do something
-//      }
-//      case Failure(_) => // do something
-//    }
-//
-//    Future.successful(Done)
-
     chatworkApiRepository.resolveAccount(request.roomId, request.messageId).map {
       case maybeAccount => maybeAccount.map {
         case a: AccountName => {
@@ -72,7 +62,10 @@ class WebhookController(implicit system: ActorSystem) {
         case _ =>
       }
       case None =>
+    }.recover {
+      case e => // do something
     }
+
     // TODO do this via stream
     // TODO retrieve sender account name through chatwork api, save record to redis, request server push to client
     Future.successful(WebhookResponse())
