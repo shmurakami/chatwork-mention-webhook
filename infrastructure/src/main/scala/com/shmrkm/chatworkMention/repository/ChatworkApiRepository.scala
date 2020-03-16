@@ -27,19 +27,18 @@ class ChatworkApiRepository(url: String, token: String)(implicit system: ActorSy
   import io.circe.generic.auto._
 
   def resolveAccount(roomId: RoomId, messageId: MessageId): Future[Option[AccountName]] = {
-//    val messageUrl = s"${url}/rooms/${roomId.value}/messages/${messageId.value}"
-//    val request = HttpRequest(
-//      HttpMethods.GET,
-//      Uri(messageUrl),
-//      immutable.Seq(
-//        RawHeader("X-ChatworkToken", token),
-//      )
-//    )
+    val messageUrl = s"${url}/rooms/${roomId.value}/messages/${messageId.value}"
+    val request = HttpRequest(
+      HttpMethods.GET,
+      Uri(messageUrl),
+      immutable.Seq(
+        RawHeader("X-ChatworkToken", token),
+      )
+    )
 
     // TODO resolve room name
 
-//    val response = Http().singleRequest(request).flatMap(Unmarshal(_).to[ApiResponse])
-    Http().singleRequest(HttpRequest(uri = "http://127.0.0.1:8080/index.php"))
+    Http().singleRequest(request)
       .flatMap(Unmarshal(_).to[ApiResponse].map(apiResponse => Some(AccountName(apiResponse.account.name))))
   }
 }
