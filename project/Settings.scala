@@ -1,3 +1,6 @@
+import sbt.Keys._
+import sbt._
+
 object Settings {
   val akkaVersion = "2.6.3"
 
@@ -8,5 +11,12 @@ object Settings {
   val akkaCirceVersion = "1.31.0"
 
   val redisClientVersion = "3.20"
+
+  val baseSettings = Seq(
+    libraryDependencies ++= Seq(
+      "ch.qos.logback" % "logback-classic" % "1.2.3",
+      "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2"
+    )
+  )
 
 }

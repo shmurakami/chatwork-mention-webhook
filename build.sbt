@@ -6,12 +6,14 @@ val `domain` = (project in file("domain"))
   )
 
 val `use-case` = (project in file("use-case"))
+  .settings(baseSettings)
   .settings(
     name := "use-case"
   )
   .dependsOn(`domain`)
 
 val `interface` = (project in file("interface"))
+  .settings(baseSettings)
   .settings(
     name := "interface",
   )
@@ -20,6 +22,7 @@ val `interface` = (project in file("interface"))
   )
 
 val `infrastructure` = (project in file("infrastructure"))
+  .settings(baseSettings)
   .settings(
     name := "infrastructure",
     libraryDependencies ++= Seq(
@@ -39,6 +42,7 @@ val `infrastructure` = (project in file("infrastructure"))
   )
 
 val `application` = (project in file("application"))
+  .settings(baseSettings)
   .settings(
     name := "application",
     libraryDependencies ++= Seq(
@@ -52,6 +56,7 @@ val `application` = (project in file("application"))
   )
 
 val `api-server` = (project in file("api-server"))
+  .settings(baseSettings)
   .settings(
     name := "api-server",
     libraryDependencies ++= Seq(

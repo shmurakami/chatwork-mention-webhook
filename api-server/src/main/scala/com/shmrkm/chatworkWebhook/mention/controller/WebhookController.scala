@@ -6,6 +6,7 @@ import akka.http.scaladsl.server.Route
 import com.redis.RedisClient
 import com.shmrkm.chatworkMention.repository.{ChatworkApiRepositoryImpl, MentionRepositoryRedisImpl}
 import com.shmrkm.chatworkWebhook.mention.protocol.{MentionCommand, WebhookRequest}
+import com.typesafe.scalalogging.Logger
 import com.webhook.mention.chatwork.protocol.WebhookResponse
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -16,6 +17,8 @@ class WebhookController(implicit system: ActorSystem) {
 
   private val chatworkApiConfig = system.settings.config.getConfig("chatwork.api")
   private val redisConfig = system.settings.config.getConfig("redis")
+
+  private val logger = Logger(classOf[WebhookController])
 
   def route: Route =
     extractExecutionContext { implicit ec =>
@@ -45,9 +48,9 @@ class WebhookController(implicit system: ActorSystem) {
       mentionRepository.store(request.toAccountId, mentionList.add(newMentionMessage))
       WebhookResponse()
     }).recover {
-      // do something
-
-      case e => WebhookResponse()
+      case e =>
+        logger.warn(s"failed to proceed mention request due to $e")
+        WebhookResponse()
     }
   }
 }
