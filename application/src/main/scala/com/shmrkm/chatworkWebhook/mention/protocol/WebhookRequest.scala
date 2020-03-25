@@ -1,7 +1,9 @@
 package com.shmrkm.chatworkWebhook.mention.protocol
 
+import com.shmrkm.chatworkWebhook.domain.model.account.{FromAccountId, ToAccountId}
+import com.shmrkm.chatworkWebhook.domain.model.message.{MessageBody, MessageId, SendTime, UpdateTime}
 import com.shmrkm.chatworkWebhook.domain.model.room.RoomId
-import com.shmrkm.chatworkWebhook.domain.model.{FromAccountId, MessageBody, MessageId, SendTime, ToAccountId, UpdateTime}
+import com.shmrkm.chatworkWebhook.domain.model.message.{MessageId, UpdateTime}
 
 case class WebhookRequest(
   from_account_id: Int,

@@ -11,6 +11,14 @@ val `use-case` = (project in file("use-case"))
   )
   .dependsOn(`domain`)
 
+val `interface` = (project in file("interface"))
+  .settings(
+    name := "interface",
+  )
+  .dependsOn(
+    `domain`
+  )
+
 val `infrastructure` = (project in file("infrastructure"))
   .settings(
     name := "infrastructure",
@@ -26,7 +34,8 @@ val `infrastructure` = (project in file("infrastructure"))
     )
   )
   .dependsOn(
-    `domain`
+    `domain`,
+    `interface`,
   )
 
 val `application` = (project in file("application"))
@@ -37,8 +46,9 @@ val `application` = (project in file("application"))
     )
   )
   .dependsOn(
-    `infrastructure`,
     `domain`,
+    `interface`,
+    `infrastructure`,
   )
 
 val `api-server` = (project in file("api-server"))
@@ -58,6 +68,7 @@ val `api-server` = (project in file("api-server"))
   .dependsOn(
     `domain`,
     `use-case`,
+    `interface`,
     `infrastructure`,
     `application`,
   )
@@ -67,7 +78,8 @@ val root = (project in file("."))
     name := "chatwork-mention-webhook"
   )
   .aggregate(
-    `api-server`,
-    `use-case`,
     `domain`,
+    `use-case`,
+    `infrastructure`,
+    `api-server`,
   )

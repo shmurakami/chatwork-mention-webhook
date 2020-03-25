@@ -15,7 +15,7 @@ class Routes(
       }
     } ~ path("mention-webhook") {
       post {
-        webhookController.rouete
+        webhookController.route
       }
     }
   }

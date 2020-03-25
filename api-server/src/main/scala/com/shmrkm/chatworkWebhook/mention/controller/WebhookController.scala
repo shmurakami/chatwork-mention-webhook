@@ -1,20 +1,14 @@
 package com.shmrkm.chatworkWebhook.mention.controller
 
-import akka.Done
 import akka.actor.ActorSystem
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import com.redis.RedisClient
-import com.shmrkm.chatworkMention.repository.{ChatworkApiRepository, MentionRepositoryRedisImpl}
-import com.shmrkm.chatworkWebhook.domain.model.AccountName
-import com.shmrkm.chatworkWebhook.domain.model.account.FromAccountAvatarUrl
-import com.shmrkm.chatworkWebhook.domain.model.mention.MentionMessage
-import com.shmrkm.chatworkWebhook.domain.model.room.{RoomIconUrl, RoomName}
+import com.shmrkm.chatworkMention.repository.{ChatworkApiRepositoryImpl, MentionRepositoryRedisImpl}
 import com.shmrkm.chatworkWebhook.mention.protocol.{MentionCommand, WebhookRequest}
 import com.webhook.mention.chatwork.protocol.WebhookResponse
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
 
 class WebhookController(implicit system: ActorSystem) {
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
@@ -23,7 +17,7 @@ class WebhookController(implicit system: ActorSystem) {
   private val chatworkApiConfig = system.settings.config.getConfig("chatwork.api")
   private val redisConfig = system.settings.config.getConfig("redis")
 
-  def rouete: Route =
+  def route: Route =
     extractExecutionContext { implicit ec =>
       entity(as[WebhookRequest]) { request =>
         onSuccess(execute(request.mentionCommand)) { response =>
@@ -37,37 +31,23 @@ class WebhookController(implicit system: ActorSystem) {
 
     val apiUrl = chatworkApiConfig.getString("url")
     val token = chatworkApiConfig.getString("token")
-    val chatworkApiRepository = new ChatworkApiRepository(apiUrl, token)
+    val chatworkApiRepository = new ChatworkApiRepositoryImpl(apiUrl, token)
     val mentionRepository = new MentionRepositoryRedisImpl(new RedisClient(redisConfig.getString("host"), redisConfig.getInt("port")))
 
-    chatworkApiRepository.resolveAccount(request.roomId, request.messageId).map {
-      case maybeAccount => maybeAccount.map {
-        case a: AccountName => {
-          val mentionMessage = MentionMessage(
-            fromAccountId = request.fromAccountId,
-            fromAccountAvatarUrl = FromAccountAvatarUrl("#"),
-            roomId = request.roomId,
-            roomName = RoomName("room name"),
-            roomIconUrl = RoomIconUrl("#"),
-            messageId = request.messageId,
-            body = request.body,
-            sendTime = request.sendTime,
-            updateTime = request.updateTime,
-          )
-          mentionRepository.resolve(request.toAccountId).map { list =>
-            val newList = list.add(mentionMessage)
-            mentionRepository.store(request.toAccountId, newList)
-          }
-        }
-        case _ =>
-      }
-      case None =>
-    }.recover {
-      case e => // do something
-    }
-
     // TODO do this via stream
-    // TODO retrieve sender account name through chatwork api, save record to redis, request server push to client
-    Future.successful(WebhookResponse())
+    val mentionRepositoryFuture = mentionRepository.resolve(request.toAccountId)
+    val chatworkApiRepositoryFuture = chatworkApiRepository.resolveMentionMessage(request.roomId, request.fromAccountId, request.message)
+
+    (for {
+      mentionList <- mentionRepositoryFuture
+      newMentionMessage <- chatworkApiRepositoryFuture.map(_.get)
+    } yield {
+      mentionRepository.store(request.toAccountId, mentionList.add(newMentionMessage))
+      WebhookResponse()
+    }).recover {
+      // do something
+
+      case e => WebhookResponse()
+    }
   }
 }

@@ -1,7 +1,7 @@
 package com.shmrkm.chatworkMention.repository
 
-import com.shmrkm.chatworkWebhook.domain.model.ToAccountId
 import com.redis._
+import com.shmrkm.chatworkWebhook.domain.model.account.ToAccountId
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -20,10 +20,10 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
   }
 
   override def resolve(accountId: ToAccountId): Future[MentionList] = Future {
-    val stored = redisClient.get(readModelKey(accountId)).getOrElse("{}")
+    val stored = redisClient.get(readModelKey(accountId)).getOrElse("""{"list":[]}""")
     parse(stored).right.flatMap(_.as[MentionList]) match {
-      case Right(mentionList) => mentionList
-      case Left(_) => MentionList(Seq.empty)
+      case Right(mentionList) => println("has mention list"); mentionList
+      case Left(_) => println("empty mention list"); MentionList(Seq.empty)
     }
   }
 
