@@ -5,14 +5,16 @@ import com.shmrkm.chatworkWebhook.domain.model.account.ToAccountId
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
 import com.typesafe.scalalogging.Logger
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 trait MentionRepository {
   def store(accountId: ToAccountId, list: MentionList): Boolean
+
   def resolve(accountId: ToAccountId): Future[MentionList]
 }
 
 class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: ExecutionContext) extends MentionRepository {
+
   import io.circe.generic.auto._, io.circe.syntax._, io.circe.Json._, io.circe.parser._
 
   private val logger = Logger(classOf[MentionRepository])
@@ -33,7 +35,7 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
   }
 
   private def readModelKey(accountId: ToAccountId): String = {
-    val md = java.security.MessageDigest.getInstance("SHA-1")
+    val md  = java.security.MessageDigest.getInstance("SHA-1")
     val key = s"read-model-${accountId.value}"
     md.digest(key.getBytes("UTF-8")).map("%02x".format(_)).mkString
   }
