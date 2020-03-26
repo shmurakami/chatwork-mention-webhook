@@ -5,10 +5,11 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.unmarshalling.Unmarshal
-import com.shmrkm.chatworkWebhook.domain.model.account.{FromAccount, FromAccountAvatarUrl, FromAccountId}
+import com.shmrkm.chatworkWebhook.domain.model.account.{FromAccount, FromAccountAvatarUrl, FromAccountId, ToAccountId}
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionMessage
 import com.shmrkm.chatworkWebhook.domain.model.message.Message
 import com.shmrkm.chatworkWebhook.domain.model.room.{Room, RoomIconUrl, RoomId, RoomName}
+import com.typesafe.scalalogging.Logger
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
 
@@ -64,4 +65,18 @@ class ChatworkApiRepositoryImpl(url: String, token: String)(implicit system: Act
       RawHeader("X-ChatworkToken", token),
     )
   )
+
+  override def resolveAccount(accountId: ToAccountId): Future[Option[MeResponse]] = {
+    val meUrl = s"${url}/me"
+    Http().singleRequest(request(meUrl))
+      .flatMap(Unmarshal(_).to[MeResponse])
+      .map(response => {
+        if (response.account_id == accountId.value) {
+          Some(response)
+        } else {
+          Logger(classOf[ChatworkApiRepository]).warn(s"detect account id mismatching request ${accountId.value} and token ${response.account_id}")
+          None
+        }
+      })
+  }
 }

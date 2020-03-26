@@ -9,13 +9,10 @@ sealed trait ChatworkApiResponse
 
 case class AccountResponse(account_id: Int, name: String, avatar_image_url: String)
 
-case class ApiResponse(
-                        message_id: String,
-                        account: AccountResponse,
-                        body: String,
-                        send_time: Int,
-                        update_time: Int,
-                      ) extends ChatworkApiResponse
+case class MeResponse(
+                       account_id: Int,
+                       name: String,
+                     ) extends ChatworkApiResponse
 
 case class RoomResponse(
                          room_id: Int,
