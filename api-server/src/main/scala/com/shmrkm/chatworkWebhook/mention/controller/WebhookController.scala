@@ -2,7 +2,7 @@ package com.shmrkm.chatworkWebhook.mention.controller
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.{ Directive0, Directive1, MissingHeaderRejection, Route }
 import com.redis.RedisClient
 import com.shmrkm.chatworkMention.repository.{ ChatworkApiRepositoryImpl, MentionRepositoryRedisImpl }
 import com.shmrkm.chatworkWebhook.mention.protocol.{ MentionCommand, WebhookRequest }
@@ -16,23 +16,32 @@ class WebhookController(implicit system: ActorSystem) {
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
   import io.circe.generic.auto._
 
-  private val chatworkApiConfig = system.settings.config.getConfig("chatwork.api")
-  private val redisConfig       = system.settings.config.getConfig("redis")
+  private val chatworkConfig = system.settings.config.getConfig("chatwork")
+  private val redisConfig    = system.settings.config.getConfig("redis")
 
   private val logger = Logger(classOf[WebhookController])
 
+  def verifySignature: Directive1[String] = {
+    val headerKey       = chatworkConfig.getString("webhook.signature_header_key")
+    val expectSignature = chatworkConfig.getString("webhook.signature")
+
+    headerValueByName(headerKey).filter(_ == expectSignature, MissingHeaderRejection(headerKey))
+  }
+
   def route: Route =
-    extractExecutionContext { implicit ec =>
-      entity(as[WebhookRequest]) { request =>
-        onSuccess(execute(request.mentionCommand)) { response => complete(response) }
+    verifySignature { _ =>
+      extractExecutionContext { implicit ec =>
+        entity(as[WebhookRequest]) { request =>
+          onSuccess(execute(request.mentionCommand)) { response => complete(response) }
+        }
       }
     }
 
   def execute(request: MentionCommand)(implicit ec: ExecutionContext): Future[WebhookResponse] = {
     // store to queue
 
-    val apiUrl                = chatworkApiConfig.getString("url")
-    val token                 = chatworkApiConfig.getString("token")
+    val apiUrl                = chatworkConfig.getString("api.url")
+    val token                 = chatworkConfig.getString("api.token")
     val chatworkApiRepository = new ChatworkApiRepositoryImpl(apiUrl, token)
     val mentionRepository = new MentionRepositoryRedisImpl(
       new RedisClient(redisConfig.getString("host"), redisConfig.getInt("port"))
