@@ -22,8 +22,8 @@ class MentionController(implicit system: ActorSystem) {
 
   def routes: Route =
     extractExecutionContext { implicit ec =>
-      parameters('account_id) { accountId =>
-        onSuccess(execute(MentionQuery(ToAccountId(accountId.toInt)))) { response => complete(response) }
+      parameters('account_id.as[Int]) { accountId =>
+        onSuccess(execute(MentionQuery(ToAccountId(accountId)))) { response => complete(response) }
       }
     }
 
