@@ -2,14 +2,14 @@ package com.shmrkm.chatworkWebhook.mention.controller
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{ Directive0, Directive1, MissingHeaderRejection, Route }
+import akka.http.scaladsl.server.{Directive1, MissingHeaderRejection, Route}
 import com.redis.RedisClient
-import com.shmrkm.chatworkMention.repository.{ ChatworkApiRepositoryImpl, MentionRepositoryRedisImpl }
-import com.shmrkm.chatworkWebhook.mention.protocol.{ MentionCommand, WebhookRequest }
+import com.shmrkm.chatworkMention.repository.{ChatworkApiRepositoryImpl, MentionRepositoryRedisImpl}
+import com.shmrkm.chatworkWebhook.mention.protocol.write.{MentionCommand, WebhookRequest}
 import com.typesafe.scalalogging.Logger
 import com.webhook.mention.chatwork.protocol.WebhookResponse
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
 class WebhookController(implicit system: ActorSystem) {
 

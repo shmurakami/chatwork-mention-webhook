@@ -1,13 +1,16 @@
 package com.shmrkm.chatworkWebhook.mention.controller
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import com.redis.RedisClient
-import com.shmrkm.chatworkMention.repository.{ChatworkApiRepositoryImpl, MentionRepositoryRedisImpl}
+import com.shmrkm.chatworkMention.repository.{ChatworkApiRepositoryImpl, InvalidAccountId, MentionRepositoryRedisImpl, RequestFailure}
 import com.shmrkm.chatworkWebhook.domain.model.account.ToAccountId
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
-import com.shmrkm.chatworkWebhook.mention.protocol.MentionQuery
+import com.shmrkm.chatworkWebhook.mention.protocol.read.MentionErrorResponse.InvalidRequest
+import com.shmrkm.chatworkWebhook.mention.protocol.read.MentionQuery
+import com.typesafe.scalalogging.Logger
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -25,23 +28,38 @@ class MentionController(implicit system: ActorSystem) {
     extractExecutionContext { implicit ec =>
       headerValueByName("X-ChatworkToken") { chatworkToken =>
         parameters('account_id.as[Int]) { accountId =>
-          onSuccess(execute(MentionQuery(ToAccountId(accountId)), chatworkToken)) { response => complete(response) }
+          onSuccess(execute(MentionQuery(ToAccountId(accountId)), chatworkToken)) {
+            case Right(mentionList) => complete(mentionList)
+            case Left(_)            => complete(StatusCodes.BadRequest, InvalidRequest())
+          }
         }
       }
     }
 
-  def execute(query: MentionQuery, token: String)(implicit ec: ExecutionContext): Future[MentionList] = {
+  def execute(query: MentionQuery, token: String)(
+      implicit ec: ExecutionContext
+  ): Future[Either[String, MentionList]] = {
+    // seems Either Left should be any type
+
     // validate token
     val chatworkApiRepository = new ChatworkApiRepositoryImpl(apiUrl, token)
     val mentionRepository = new MentionRepositoryRedisImpl(
       new RedisClient(redisConfig.getString("host"), redisConfig.getInt("port"))
     )
 
-    for {
-      // TODO calling api is not task for here. it's validation purpose
-      me          <- chatworkApiRepository.resolveAccount(query.accountId)
+    val logger = Logger(classOf[MentionController])
+    (for {
+      - <- chatworkApiRepository.resolveAccount(query.accountId)
       mentionList <- mentionRepository.resolve(query.accountId)
-    } yield mentionList
+    } yield Right(mentionList))
+      .recover {
+        case e: InvalidAccountId =>
+          logger.warn(e.toString)
+          Left("error")
+        case e: RequestFailure =>
+          logger.warn(e.toString)
+          Left("try again")
+      }
   }
 
 }

@@ -15,5 +15,5 @@ trait ChatworkApiRepository {
       message: Message
   ): Future[Option[MentionMessage]]
 
-  def resolveAccount(accountId: ToAccountId): Future[Option[MeResponse]]
+  def resolveAccount(accountId: ToAccountId): Future[MeResponse]
 }
