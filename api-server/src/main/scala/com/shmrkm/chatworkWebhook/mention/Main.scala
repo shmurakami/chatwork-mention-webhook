@@ -41,7 +41,6 @@ object Main {
       val future = Future
         .successful()
         .flatMap(_ => bindingFuture.flatMap(_.unbind()))
-        .flatMap(_ => system.whenTerminated)
       Await.result(future, terminationDuration)
     }
   }
