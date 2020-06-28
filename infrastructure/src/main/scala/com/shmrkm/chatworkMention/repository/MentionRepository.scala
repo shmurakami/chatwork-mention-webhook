@@ -1,27 +1,36 @@
 package com.shmrkm.chatworkMention.repository
 
 import com.redis._
+import com.shmrkm.chatworkMention.exception.StoreException
 import com.shmrkm.chatworkWebhook.domain.model.account.ToAccountId
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
+import com.shmrkm.chatworkWebhook.domain.model.message.Message
 import com.typesafe.scalalogging.Logger
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 trait MentionRepository {
-  def store(accountId: ToAccountId, list: MentionList): Boolean
+  def store(message: Message, channelName: String): Future[Try[Boolean]]
 
   def resolve(accountId: ToAccountId): Future[MentionList]
 }
 
 class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: ExecutionContext) extends MentionRepository {
 
-  import io.circe.generic.auto._, io.circe.syntax._, io.circe.Json._, io.circe.parser._
+  import io.circe.generic.auto._
+  import io.circe.parser._
+  import io.circe.syntax._
 
   private val logger = Logger(classOf[MentionRepository])
 
-  override def store(accountId: ToAccountId, list: MentionList): Boolean = {
-
-    redisClient.set(readModelKey(accountId), list.asJson)
+  override def store(message: Message, channelName: String): Future[Try[Boolean]] = {
+    Future {
+      redisClient.publish(channelName, message.asJson.toString) match {
+        case Some(_) => logger.info("succeeded to store");Success(true)
+        case None    => logger.warn("failed to store");Failure(new StoreException("failed to publish to redis"))
+      }
+    }
   }
 
   override def resolve(accountId: ToAccountId): Future[MentionList] = Future {
