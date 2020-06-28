@@ -1,13 +1,16 @@
 package com.shmrkm.chatworkWebhook.mention
 
+import java.util.concurrent.TimeUnit
+
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import com.shmrkm.chatworkWebhook.mention.controller.{MentionController, WebhookController}
 import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriberProxy
 import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriberProxy.Start
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.ConfigFactory
 
-import scala.io.StdIn
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.{Await, Future}
 
 object Main {
 
@@ -28,15 +31,18 @@ object Main {
       new MentionController
     )
 
-    val host         = config.getString("chatwork-mention-webhook.api-server.host")
-    val port         = config.getInt("chatwork-mention-webhook.api-server.port")
-    val bidingFuture = Http().bindAndHandle(routes.routes, host, port)
+    val host          = config.getString("chatwork-mention-webhook.api-server.host")
+    val port          = config.getInt("chatwork-mention-webhook.api-server.port")
+    val bindingFuture = Http().bindAndHandle(routes.routes, host, port)
 
-    // TODO revise finish processes
-    println(s"Server online at http://${host}:${port}/\nPress RETURN to stop...")
-    StdIn.readLine()
-    bidingFuture
-      .flatMap(_.unbind())
-      .onComplete(_ => system.terminate())
+    val terminationDuration = FiniteDuration(config.getDuration("chatwork-mention-webhook.api-server.termination-duration").toMillis, TimeUnit.MILLISECONDS)
+
+    sys.addShutdownHook {
+      val future = Future
+        .successful()
+        .flatMap(_ => bindingFuture.flatMap(_.unbind()))
+        .flatMap(_ => system.whenTerminated)
+      Await.result(future, terminationDuration)
+    }
   }
 }
