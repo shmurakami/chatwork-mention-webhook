@@ -1,6 +1,6 @@
 package com.shmrkm.chatworkMention.repository
 
-import com.redis._
+import com.redis.{PubSubMessage, _}
 import com.shmrkm.chatworkMention.exception.StoreException
 import com.shmrkm.chatworkWebhook.domain.model.account.ToAccountId
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
@@ -12,6 +12,8 @@ import scala.util.{Failure, Success, Try}
 
 trait MentionRepository {
   def store(message: Message, channelName: String): Future[Try[Boolean]]
+
+  def subscribe(channelName: String)(consumer: PubSubMessage => Unit): Unit
 
   def resolve(accountId: ToAccountId): Future[MentionList]
 }
@@ -31,6 +33,11 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
         case None    => logger.warn("failed to store");Failure(new StoreException("failed to publish to redis"))
       }
     }
+  }
+
+  override def subscribe(channelName: String)(consumer: PubSubMessage => Unit): Unit = {
+    logger.info("start subscribe")
+    redisClient.subscribe(channelName)(consumer)
   }
 
   override def resolve(accountId: ToAccountId): Future[MentionList] = Future {

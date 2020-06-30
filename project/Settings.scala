@@ -12,6 +12,9 @@ object Settings {
 
   val redisClientVersion = "3.20"
 
+  val scalaTestVersion = "3.2.0"
+  val scalacticVersion = "3.2.0"
+
   val baseSettings = Seq(
     libraryDependencies ++= Seq(
       "ch.qos.logback" % "logback-classic" % "1.2.3",
