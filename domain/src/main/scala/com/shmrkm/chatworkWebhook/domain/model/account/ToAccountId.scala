@@ -1,3 +1,3 @@
 package com.shmrkm.chatworkWebhook.domain.model.account
 
-case class ToAccountId(value: Int)
+case class ToAccountId(value: Long)

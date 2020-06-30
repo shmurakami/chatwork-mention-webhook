@@ -1,3 +1,3 @@
 package com.shmrkm.chatworkWebhook.domain.model.room
 
-case class RoomId(value: Int)
+case class RoomId(value: Long)
