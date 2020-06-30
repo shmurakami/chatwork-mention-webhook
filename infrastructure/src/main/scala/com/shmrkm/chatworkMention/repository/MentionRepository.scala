@@ -1,21 +1,24 @@
 package com.shmrkm.chatworkMention.repository
 
-import com.redis.{PubSubMessage, _}
+import akka.Done
+import com.redis.{ PubSubMessage, _ }
 import com.shmrkm.chatworkMention.exception.StoreException
 import com.shmrkm.chatworkWebhook.domain.model.account.ToAccountId
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
 import com.shmrkm.chatworkWebhook.domain.model.message.Message
 import com.typesafe.scalalogging.Logger
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success, Try }
 
 trait MentionRepository {
-  def store(message: Message, channelName: String): Future[Try[Boolean]]
+  def publish(message: Message, channelName: String): Future[Try[Boolean]]
 
   def subscribe(channelName: String)(consumer: PubSubMessage => Unit): Unit
 
   def resolve(accountId: ToAccountId): Future[MentionList]
+
+  def updateReadModel(toAccountId: ToAccountId, mentionList: MentionList): Future[Try[Done]]
 }
 
 class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: ExecutionContext) extends MentionRepository {
@@ -26,11 +29,11 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
 
   private val logger = Logger(classOf[MentionRepository])
 
-  override def store(message: Message, channelName: String): Future[Try[Boolean]] = {
+  override def publish(message: Message, channelName: String): Future[Try[Boolean]] = {
     Future {
       redisClient.publish(channelName, message.asJson.toString) match {
-        case Some(_) => logger.info("succeeded to store");Success(true)
-        case None    => logger.warn("failed to store");Failure(new StoreException("failed to publish to redis"))
+        case Some(_) => logger.info("succeeded to store"); Success(true)
+        case None    => logger.warn("failed to store"); Failure(new StoreException("failed to publish to redis"))
       }
     }
   }
@@ -47,6 +50,13 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
       case Left(_) =>
         logger.info(s"empty mention list for account: ${accountId.value}")
         MentionList(Seq.empty)
+    }
+  }
+
+  override def updateReadModel(toAccountId: ToAccountId, mentionList: MentionList): Future[Try[Done]] = {
+    Future {
+      if (redisClient.set(readModelKey(toAccountId), mentionList.asJson.toString)) Success(Done)
+      else Failure(new StoreException("failed to update read model"))
     }
   }
 

@@ -24,7 +24,7 @@ class MentionRecordActor(refTo: ActorRef) extends Actor with ActorLogging with M
   val channelName = config.getString("redis.channel-name")
 
   override def receive: Receive = {
-    case Record(message) => refTo forward mentionRepository.store(message, channelName).map {
+    case Record(message) => refTo forward mentionRepository.publish(message, channelName).map {
       case Success(_) => SuccessToStore()
       case Failure(ex: Exception) => FailureToStore(ex)
     }

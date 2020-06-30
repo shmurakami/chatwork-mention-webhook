@@ -13,5 +13,15 @@ case class MentionCommand(
     sendTime: SendTime,
     updateTime: UpdateTime
 ) {
-  def message: Message = Message(messageId, roomId, fromAccountId, body, sendTime, updateTime)
+
+  def message: Message =
+    Message(
+      id = messageId,
+      roomId = roomId,
+      fromAccountId = fromAccountId,
+      toAccountId = toAccountId,
+      body = body,
+      sendTime = sendTime,
+      updateTime = updateTime
+    )
 }
