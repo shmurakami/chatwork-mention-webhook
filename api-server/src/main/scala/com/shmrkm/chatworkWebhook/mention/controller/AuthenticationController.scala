@@ -1,18 +1,15 @@
 package com.shmrkm.chatworkWebhook.mention.controller
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.{ ContentTypes, HttpResponse, StatusCodes }
+import akka.http.scaladsl.model.{ContentTypes, HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import com.shmrkm.chatworkMention.repository.{ AuthenticationRepository, ChatworkApiRepositoryImpl }
-import com.shmrkm.chatworkWebhook.mention.protocol.command.{
-  AuthenticationRequest,
-  AuthenticationResponse,
-  UnauthenticatedResponse
-}
+import com.redis.RedisClient
+import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, AuthenticationRepositoryImpl, ChatworkApiRepositoryImpl}
+import com.shmrkm.chatworkWebhook.mention.protocol.command.{AuthenticationRequest, AuthenticationResponse, UnauthenticatedResponse}
 
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success }
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 class AuthenticationController(implicit system: ActorSystem) extends Controller {
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
@@ -23,7 +20,9 @@ class AuthenticationController(implicit system: ActorSystem) extends Controller 
 
   val config = system.settings.config
 
-  val authenticationRepository: AuthenticationRepository = ???
+  val authenticationRepository: AuthenticationRepository = new AuthenticationRepositoryImpl(
+    new RedisClient(config.getString("redis.host"), config.getInt("redis.port"))
+  )
 
   def route: Route =
     post {
