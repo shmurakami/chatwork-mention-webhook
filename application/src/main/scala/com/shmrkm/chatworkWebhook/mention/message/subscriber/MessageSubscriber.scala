@@ -6,6 +6,7 @@ import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import akka.{Done, NotUsed}
 import com.redis._
 import com.shmrkm.chatworkMention.repository.{ChatworkApiRepository, ChatworkApiRepositoryImpl}
+import com.shmrkm.chatworkWebhook.domain.model.chatwork.ApiToken
 import com.shmrkm.chatworkWebhook.domain.model.message.Message
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
 import com.shmrkm.chatworkWebhook.mention.MentionStreamRepositoryFactory
@@ -39,7 +40,7 @@ class MessageSubscriber extends Actor with ActorLogging with MentionStreamReposi
   implicit val system: ActorSystem = context.system
 
   val chatworkApiRepository: ChatworkApiRepository =
-    new ChatworkApiRepositoryImpl(config.getString("chatwork.api.url"), config.getString("chatwork.api.token"))
+    new ChatworkApiRepositoryImpl(config.getString("chatwork.api.url"), ApiToken(config.getString("chatwork.api.token")))
 
   override def receive: Receive = {
     case _: Start => mentionRepository.subscribe(channelName)(registerConsumerReceiver)

@@ -8,6 +8,7 @@ import com.redis.RedisClient
 import com.shmrkm.chatworkMention.exception.{InvalidAccountIdException, RequestFailureException}
 import com.shmrkm.chatworkMention.repository.{ChatworkApiRepositoryImpl, MentionRepositoryRedisImpl}
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
+import com.shmrkm.chatworkWebhook.domain.model.chatwork.ApiToken
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
 import com.shmrkm.chatworkWebhook.mention.protocol.read.MentionErrorResponse.InvalidRequest
 import com.shmrkm.chatworkWebhook.mention.protocol.read.MentionQuery
@@ -30,7 +31,7 @@ class MentionController(implicit system: ActorSystem) extends Controller {
       extractExecutionContext { implicit ec =>
         headerValueByName("X-ChatworkToken") { chatworkToken =>
           parameters('account_id.as[Int]) { accountId =>
-            onSuccess(execute(MentionQuery(AccountId(accountId)), chatworkToken)) {
+            onSuccess(execute(MentionQuery(AccountId(accountId)), ApiToken(chatworkToken))) {
               case Right(mentionList) => complete(mentionList)
               case Left(_)            => complete(StatusCodes.BadRequest, InvalidRequest())
             }
@@ -39,7 +40,7 @@ class MentionController(implicit system: ActorSystem) extends Controller {
       }
     }
 
-  def execute(query: MentionQuery, token: String)(
+  def execute(query: MentionQuery, token: ApiToken)(
       implicit ec: ExecutionContext
   ): Future[Either[String, MentionList]] = {
     // seems Either Left should be any type
