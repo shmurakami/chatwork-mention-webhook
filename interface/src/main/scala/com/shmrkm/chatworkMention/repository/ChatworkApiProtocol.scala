@@ -1,6 +1,6 @@
 package com.shmrkm.chatworkMention.repository
 
-import com.shmrkm.chatworkWebhook.domain.model.account.FromAccountId
+import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
 
 object ChatworkApiProtocol {}
 
@@ -44,5 +44,5 @@ case class MemberResponseItem(
 case class MemberResponse(
     values: Seq[MemberResponseItem]
 ) extends ChatworkApiResponse {
-  def filterBy(accountId: FromAccountId): Seq[MemberResponseItem] = values.filter(_.account_id == accountId.value)
+  def filterBy(accountId: AccountId): Seq[MemberResponseItem] = values.filter(_.account_id == accountId.value)
 }

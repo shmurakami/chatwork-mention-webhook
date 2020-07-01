@@ -5,8 +5,9 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import com.redis.RedisClient
-import com.shmrkm.chatworkMention.repository.{ChatworkApiRepositoryImpl, InvalidAccountId, MentionRepositoryRedisImpl, RequestFailure}
-import com.shmrkm.chatworkWebhook.domain.model.account.ToAccountId
+import com.shmrkm.chatworkMention.exception.{InvalidAccountIdException, RequestFailureException}
+import com.shmrkm.chatworkMention.repository.{ChatworkApiRepositoryImpl, MentionRepositoryRedisImpl}
+import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
 import com.shmrkm.chatworkWebhook.mention.protocol.read.MentionErrorResponse.InvalidRequest
 import com.shmrkm.chatworkWebhook.mention.protocol.read.MentionQuery
@@ -28,7 +29,7 @@ class MentionController(implicit system: ActorSystem) {
     extractExecutionContext { implicit ec =>
       headerValueByName("X-ChatworkToken") { chatworkToken =>
         parameters('account_id.as[Int]) { accountId =>
-          onSuccess(execute(MentionQuery(ToAccountId(accountId)), chatworkToken)) {
+          onSuccess(execute(MentionQuery(AccountId(accountId)), chatworkToken)) {
             case Right(mentionList) => complete(mentionList)
             case Left(_)            => complete(StatusCodes.BadRequest, InvalidRequest())
           }
@@ -53,10 +54,10 @@ class MentionController(implicit system: ActorSystem) {
       mentionList <- mentionRepository.resolve(query.accountId)
     } yield Right(mentionList))
       .recover {
-        case e: InvalidAccountId =>
+        case e: InvalidAccountIdException =>
           logger.warn(e.toString)
           Left("error")
-        case e: RequestFailure =>
+        case e: RequestFailureException =>
           logger.warn(e.toString)
           Left("try again")
       }

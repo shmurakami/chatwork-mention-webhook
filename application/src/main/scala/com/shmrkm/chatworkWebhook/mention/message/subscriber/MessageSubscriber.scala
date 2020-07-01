@@ -1,22 +1,20 @@
 package com.shmrkm.chatworkWebhook.mention.message.subscriber
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import akka.{Done, NotUsed}
 import com.redis._
-import com.shmrkm.chatworkWebhook.domain.model.account.{AccountName, FromAccountAvatarUrl, ToAccountId}
-import com.shmrkm.chatworkWebhook.domain.model.mention.MentionMessage
+import com.shmrkm.chatworkMention.repository.{ChatworkApiRepository, ChatworkApiRepositoryImpl}
 import com.shmrkm.chatworkWebhook.domain.model.message.Message
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
-import com.shmrkm.chatworkWebhook.domain.model.room.{RoomIconUrl, RoomName}
 import com.shmrkm.chatworkWebhook.mention.MentionStreamRepositoryFactory
 import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriber.{ConsumeError, ConsumedMessage}
 import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriberProxy.Start
 import com.typesafe.config.Config
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.util.Failure
 
 object MessageSubscriber {
   case class ConsumedMessage(value: String)
@@ -37,6 +35,11 @@ class MessageSubscriber extends Actor with ActorLogging with MentionStreamReposi
 
   val mentionRepository = factoryMentionRepository()
   val channelName       = config.getString("redis.channel-name")
+
+  implicit val system: ActorSystem = context.system
+
+  val chatworkApiRepository: ChatworkApiRepository =
+    new ChatworkApiRepositoryImpl(config.getString("chatwork.api.url"), config.getString("chatwork.api.token"))
 
   override def receive: Receive = {
     case _: Start => mentionRepository.subscribe(channelName)(registerConsumerReceiver)
@@ -77,37 +80,49 @@ class MessageSubscriber extends Actor with ActorLogging with MentionStreamReposi
   def retrieveInsufficientDataAndBuildMessage(): Flow[Message, QueryMessage, NotUsed] = {
     // TODO retrieve some data from cw api
     Flow[Message]
-      .map { message =>
-        log.info(s"$message")
-        QueryMessage(
-          id = message.id,
-          roomId = message.roomId,
-          roomName = RoomName(""),
-          roomIconUrl = RoomIconUrl(""),
-          fromAccountId = message.fromAccountId,
-          fromAccountName = AccountName(""),
-          fromAccountAvatarUrl = FromAccountAvatarUrl(""),
-          toAccountId = message.toAccountId,
-          body = message.body,
-          sendTime = message.sendTime,
-          updateTime = message.updateTime
-        )
+      .mapAsync(1) { message =>
+        log.info(s"retrieve for message $message")
+        (for {
+          room        <- chatworkApiRepository.retrieveRoom(message.roomId)
+          fromAccount <- chatworkApiRepository.retrieveAccount(message.roomId, message.fromAccountId)
+        } yield Tuple2(room, fromAccount))
+          .map { values =>
+            val room    = values._1
+            val account = values._2
+
+            QueryMessage(
+              id = message.id,
+              roomId = message.roomId,
+              roomName = room.name,
+              roomIconUrl = room.iconUrl,
+              fromAccountId = message.fromAccountId,
+              fromAccountName = account.name,
+              fromAccountAvatarUrl = account.avatar,
+              toAccountId = message.toAccountId,
+              body = message.body,
+              sendTime = message.sendTime,
+              updateTime = message.updateTime
+            )
+          }
       }
   }
 
   def updateReadModel(): Flow[QueryMessage, Done, NotUsed] = {
     Flow[QueryMessage]
       .map { message =>
+        log.info(s"message $message")
         for {
-          mentions        <- mentionRepository.resolve(message.toAccountId)
-          updatedMentions <- Future { mentions.add(message) }
-          result          <- mentionRepository.updateReadModel(message.toAccountId, updatedMentions)
+          mentions <- mentionRepository.resolve(message.toAccountId)
+          updatedMentions <- Future {
+            mentions.add(message)
+          }
+          result <- mentionRepository.updateReadModel(message.toAccountId, updatedMentions)
         } yield result
           .recoverWith {
             case exception =>
               log.error(s"failure to update read model. should retry")
               Failure(exception)
-              // then what's happened?
+            // then what's happened?
           }
         Done
       }

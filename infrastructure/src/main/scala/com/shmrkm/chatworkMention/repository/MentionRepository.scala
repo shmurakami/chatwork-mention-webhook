@@ -1,24 +1,24 @@
 package com.shmrkm.chatworkMention.repository
 
 import akka.Done
-import com.redis.{ PubSubMessage, _ }
+import com.redis.{PubSubMessage, _}
 import com.shmrkm.chatworkMention.exception.StoreException
-import com.shmrkm.chatworkWebhook.domain.model.account.ToAccountId
+import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
 import com.shmrkm.chatworkWebhook.domain.model.message.Message
 import com.typesafe.scalalogging.Logger
 
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success, Try }
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 trait MentionRepository {
   def publish(message: Message, channelName: String): Future[Try[Boolean]]
 
   def subscribe(channelName: String)(consumer: PubSubMessage => Unit): Unit
 
-  def resolve(accountId: ToAccountId): Future[MentionList]
+  def resolve(accountId: AccountId): Future[MentionList]
 
-  def updateReadModel(toAccountId: ToAccountId, mentionList: MentionList): Future[Try[Done]]
+  def updateReadModel(toAccountId: AccountId, mentionList: MentionList): Future[Try[Done]]
 }
 
 class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: ExecutionContext) extends MentionRepository {
@@ -43,7 +43,7 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
     redisClient.subscribe(channelName)(consumer)
   }
 
-  override def resolve(accountId: ToAccountId): Future[MentionList] = Future {
+  override def resolve(accountId: AccountId): Future[MentionList] = Future {
     val stored = redisClient.get(readModelKey(accountId)).getOrElse("""{"list":[]}""")
     parse(stored).right.flatMap(_.as[MentionList]) match {
       case Right(mentionList) => mentionList
@@ -53,14 +53,15 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
     }
   }
 
-  override def updateReadModel(toAccountId: ToAccountId, mentionList: MentionList): Future[Try[Done]] = {
+  override def updateReadModel(toAccountId: AccountId, mentionList: MentionList): Future[Try[Done]] = {
+    logger.info("do update read model")
     Future {
-      if (redisClient.set(readModelKey(toAccountId), mentionList.asJson.toString)) Success(Done)
+      if (redisClient.set(readModelKey(toAccountId), mentionList.asJson.toString)) { logger.info("updated read model");Success(Done)}
       else Failure(new StoreException("failed to update read model"))
     }
   }
 
-  private def readModelKey(accountId: ToAccountId): String = {
+  private def readModelKey(accountId: AccountId): String = {
     val md  = java.security.MessageDigest.getInstance("SHA-1")
     val key = s"read-model-${accountId.value}"
     md.digest(key.getBytes("UTF-8")).map("%02x".format(_)).mkString

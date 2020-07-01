@@ -5,10 +5,8 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.util.ByteString
-import com.shmrkm.chatworkWebhook.domain.model.account.{FromAccount, FromAccountAvatarUrl, FromAccountId, ToAccountId}
-import com.shmrkm.chatworkWebhook.domain.model.mention.MentionMessage
-import com.shmrkm.chatworkWebhook.domain.model.message.Message
+import com.shmrkm.chatworkMention.exception.{InvalidAccountIdException, RequestFailureException}
+import com.shmrkm.chatworkWebhook.domain.model.account._
 import com.shmrkm.chatworkWebhook.domain.model.room.{Room, RoomIconUrl, RoomId, RoomName}
 import com.typesafe.scalalogging.Logger
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
@@ -16,11 +14,6 @@ import io.circe.generic.auto._
 
 import scala.collection.immutable
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Success
-
-// TODO where this class should be put?
-case class InvalidAccountId(message: String) extends RuntimeException
-case class RequestFailure(message: String) extends RuntimeException
 
 // TODO make token model
 class ChatworkApiRepositoryImpl(url: String, token: String)(
@@ -28,43 +21,20 @@ class ChatworkApiRepositoryImpl(url: String, token: String)(
     implicit val ec: ExecutionContext
 ) extends ChatworkApiRepository {
 
-  override def resolveMentionMessage(
-      roomId: RoomId,
-      fromAccountId: FromAccountId,
-      message: Message
-  ): Future[Option[MentionMessage]] = {
-    // account name, avatar image url, from rooms/:id/members
-    // room name, room icon url, from rooms/:id
-
-    for {
-      fromAccount <- retrieveAccount(roomId, fromAccountId)
-      room        <- retrieveRoom(roomId)
-    } yield {
-      Some(
-        MentionMessage(
-          fromAccount.id,
-          fromAccount.avatar,
-          room.id,
-          room.name,
-          room.iconUrl,
-          message.id,
-          message.body,
-          message.sendTime,
-          message.updateTime
-        )
-      )
-    }
-  }
-
-  private def retrieveRoom(roomId: RoomId): Future[Room] = {
+  // TODO error handling
+  def retrieveRoom(roomId: RoomId): Future[Room] = {
+    val logger = Logger(classOf[ChatworkApiRepository])
     val roomUrl = s"${url}/rooms/${roomId.value}"
     Http()
       .singleRequest(request(roomUrl))
-      .flatMap(Unmarshal(_).to[RoomResponse])
+//      .flatMap(Unmarshal(_).to[RoomResponse])
+      .flatMap(r => {logger.info(r.toString());Unmarshal(r).to[RoomResponse]})
       .map(response => Room(roomId, RoomName(response.name), RoomIconUrl(response.icon_path)))
   }
 
-  private def retrieveAccount(roomId: RoomId, fromAccountId: FromAccountId): Future[FromAccount] = {
+  // TODO error handling
+  def retrieveAccount(roomId: RoomId, fromAccountId: AccountId): Future[FromAccount] = {
+    Logger(classOf[ChatworkApiRepository]).info("retrieve room")
     val memberUrl = s"${url}/rooms/${roomId.value}/members"
     Http()
       .singleRequest(request(memberUrl))
@@ -73,7 +43,7 @@ class ChatworkApiRepositoryImpl(url: String, token: String)(
       .map(response =>
         response
           .filterBy(fromAccountId)
-          .map(response => FromAccount(fromAccountId, FromAccountAvatarUrl(response.avatar_image_url)))
+          .map(response => FromAccount(fromAccountId, AccountName(response.name), FromAccountAvatarUrl(response.avatar_image_url)))
           .head
       )
   }
@@ -86,7 +56,7 @@ class ChatworkApiRepositoryImpl(url: String, token: String)(
     )
   )
 
-  override def resolveAccount(accountId: ToAccountId): Future[MeResponse] = {
+  override def resolveAccount(accountId: AccountId): Future[MeResponse] = {
     val logger = Logger(classOf[ChatworkApiRepository])
 
     val meUrl = s"${url}/me"
@@ -97,13 +67,13 @@ class ChatworkApiRepositoryImpl(url: String, token: String)(
         if (response.account_id == accountId.value) response
         else {
           logger.warn(s"detect account id mismatching request ${accountId.value} and token ${response.account_id}")
-          throw InvalidAccountId(s"invalid account id ${accountId.value}")
+          throw InvalidAccountIdException(s"invalid account id ${accountId.value}")
         }
       })
       .recover {
         case e =>
           logger.warn(s"failed to request to chatwork api, $e")
-          throw RequestFailure("failed to request to chatwork api")
+          throw RequestFailureException("failed to request to chatwork api")
       }
   }
 }

@@ -1,11 +1,11 @@
 package com.shmrkm.chatworkWebhook.domain.model.mention
 
-import com.shmrkm.chatworkWebhook.domain.model.account.{FromAccountAvatarUrl, FromAccountId}
+import com.shmrkm.chatworkWebhook.domain.model.account.{AccountId, FromAccountAvatarUrl}
 import com.shmrkm.chatworkWebhook.domain.model.message.{MessageBody, MessageId, SendTime, UpdateTime}
 import com.shmrkm.chatworkWebhook.domain.model.room.{RoomIconUrl, RoomId, RoomName}
 
 case class MentionMessage(
-    fromAccountId: FromAccountId,
+    fromAccountId: AccountId,
     fromAccountAvatarUrl: FromAccountAvatarUrl,
     roomId: RoomId,
     roomName: RoomName,
