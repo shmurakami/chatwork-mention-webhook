@@ -1,7 +1,7 @@
 package com.shmrkm.chatworkMention.repository
 import com.redis.RedisClient
 import com.shmrkm.chatworkMention.exception.StoreException
-import com.shmrkm.chatworkMention.hash.HashHelper
+import com.shmrkm.chatworkMention.hash.{HashHelper, TokenGenerator}
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
 import com.shmrkm.chatworkWebhook.domain.model.auth.{AccessToken, Authentication}
 
@@ -14,7 +14,8 @@ class AuthenticationRepositoryImpl(redisClient: RedisClient)(implicit ex: Execut
   override def resolve(accessToken: AccessToken): Option[AccountId] = ???
 
   override def issueAccessToken(accountId: AccountId): Future[AccessToken] = {
-    val accessToken = AccessToken.generate
+    val tokenGenerator = new TokenGenerator
+    val accessToken = AccessToken(tokenGenerator.generateSHAToken("authentication-"))
     Future {
       if (redisClient.set(authKey(accountId), Authentication(accountId, accessToken).asJson.toString)) accessToken
       else throw new StoreException("failed to store auth info")
