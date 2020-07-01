@@ -9,12 +9,11 @@ import com.shmrkm.chatworkWebhook.mention.mention.MentionHandlerActor
 import com.shmrkm.chatworkWebhook.mention.mention.MentionHandlerActor.GetMention
 import com.shmrkm.chatworkWebhook.mention.protocol.command.WebhookResponse
 import com.shmrkm.chatworkWebhook.mention.protocol.write.{MentionCommand, WebhookRequest}
-import com.typesafe.scalalogging.Logger
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
-class WebhookController(implicit system: ActorSystem) {
+class WebhookController(implicit system: ActorSystem) extends Controller {
 
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
   import io.circe.generic.auto._
@@ -32,11 +31,13 @@ class WebhookController(implicit system: ActorSystem) {
     system.settings.config.getInt("chatwork-mention-webhook.api-server.timeout-seconds") seconds
 
   def route: Route =
-    verifySignature { _ =>
-      extractExecutionContext { implicit ec =>
-        entity(as[WebhookRequest]) { request =>
-          onComplete(execute(request.mentionCommand)) { response =>
-            complete(response)
+    post {
+      verifySignature { _ =>
+        extractExecutionContext { implicit ec =>
+          entity(as[WebhookRequest]) { request =>
+            onComplete(execute(request.mentionCommand)) { response =>
+              complete(response)
+            }
           }
         }
       }

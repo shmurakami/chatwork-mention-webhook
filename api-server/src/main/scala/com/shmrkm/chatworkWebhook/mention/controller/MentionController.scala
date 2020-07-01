@@ -15,7 +15,7 @@ import com.typesafe.scalalogging.Logger
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class MentionController(implicit system: ActorSystem) {
+class MentionController(implicit system: ActorSystem) extends Controller {
 
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
   import io.circe.generic.auto._
@@ -25,13 +25,15 @@ class MentionController(implicit system: ActorSystem) {
   // don't want to put resource to api-server
   val redisConfig = system.settings.config.getConfig("redis")
 
-  def routes: Route =
-    extractExecutionContext { implicit ec =>
-      headerValueByName("X-ChatworkToken") { chatworkToken =>
-        parameters('account_id.as[Int]) { accountId =>
-          onSuccess(execute(MentionQuery(AccountId(accountId)), chatworkToken)) {
-            case Right(mentionList) => complete(mentionList)
-            case Left(_)            => complete(StatusCodes.BadRequest, InvalidRequest())
+  def route: Route =
+    get {
+      extractExecutionContext { implicit ec =>
+        headerValueByName("X-ChatworkToken") { chatworkToken =>
+          parameters('account_id.as[Int]) { accountId =>
+            onSuccess(execute(MentionQuery(AccountId(accountId)), chatworkToken)) {
+              case Right(mentionList) => complete(mentionList)
+              case Left(_)            => complete(StatusCodes.BadRequest, InvalidRequest())
+            }
           }
         }
       }

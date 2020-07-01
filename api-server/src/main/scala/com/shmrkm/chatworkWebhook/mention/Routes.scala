@@ -1,23 +1,25 @@
 package com.shmrkm.chatworkWebhook.mention
 
+import akka.http.scaladsl.model.{ContentTypes, HttpResponse}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import com.shmrkm.chatworkWebhook.mention.controller.{ MentionController, WebhookController }
+import com.shmrkm.chatworkWebhook.mention.controller.{AuthenticationController, MentionController, WebhookController}
 
 class Routes(
+    authenticationController: AuthenticationController,
     webhookController: WebhookController,
     mentionController: MentionController
 ) {
 
   def routes: Route = {
-    path("list") {
-      get {
-        mentionController.routes
-      }
+    pathEndOrSingleSlash {
+      complete(HttpResponse(entity = """{}""", headers = Seq(ContentTypes.`application/json`)))
+    } ~ path("auth") {
+      authenticationController.route
+    } ~ path("list") {
+      mentionController.route
     } ~ path("mention-webhook") {
-      post {
-        webhookController.route
-      }
+      webhookController.route
     }
   }
 
