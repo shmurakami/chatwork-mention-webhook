@@ -4,7 +4,7 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import com.shmrkm.chatworkWebhook.mention.controller.{MentionController, WebhookController}
+import com.shmrkm.chatworkWebhook.mention.controller.{AuthenticationController, MentionController, WebhookController}
 import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriberProxy
 import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriberProxy.Start
 import com.typesafe.config.ConfigFactory
@@ -27,6 +27,7 @@ object Main {
 
     // TODO use airframe
     val routes = new Routes(
+      new AuthenticationController,
       new WebhookController,
       new MentionController
     )

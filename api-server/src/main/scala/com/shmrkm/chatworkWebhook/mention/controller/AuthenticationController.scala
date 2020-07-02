@@ -1,24 +1,17 @@
 package com.shmrkm.chatworkWebhook.mention.controller
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.{ ContentTypes, HttpResponse, StatusCodes }
+import akka.http.scaladsl.model.{ContentTypes, HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import com.redis.RedisClient
-import com.shmrkm.chatworkMention.repository.{
-  AuthenticationRepository,
-  AuthenticationRepositoryImpl,
-  ChatworkApiRepositoryImpl
-}
+import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, AuthenticationRepositoryImpl, ChatworkApiRepositoryImpl}
 import com.shmrkm.chatworkWebhook.auth.usecase.AuthenticationUseCase
-import com.shmrkm.chatworkWebhook.mention.protocol.command.{
-  AuthenticationRequest,
-  AuthenticationResponse,
-  UnauthenticatedResponse
-}
+import com.shmrkm.chatworkWebhook.mention.protocol.command.{AuthenticationCommand, AuthenticationRequest, AuthenticationResponse, UnauthenticatedResponse}
+import com.typesafe.scalalogging.Logger
 
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success }
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 class AuthenticationController(implicit system: ActorSystem) extends Controller {
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
@@ -26,6 +19,8 @@ class AuthenticationController(implicit system: ActorSystem) extends Controller 
   import io.circe.syntax._
 
   implicit val ec: ExecutionContext = system.dispatcher
+
+  val logger = Logger(classOf[AuthenticationController])
 
   val config = system.settings.config
 
@@ -37,14 +32,14 @@ class AuthenticationController(implicit system: ActorSystem) extends Controller 
     post {
       extractExecutionContext { implicit ec =>
         entity(as[AuthenticationRequest]) { request =>
-          onComplete(execute(request)) {
+          onComplete(execute(request.command)) {
             case Success(response) => complete(response)
             case Failure(ex) =>
+              logger.warn(ex.toString)
               complete(
                 HttpResponse(
                   entity = UnauthenticatedResponse().asJson.toString,
-                  status = StatusCodes.BadRequest,
-                  headers = Seq(ContentTypes.`application/json`)
+                  status = StatusCodes.BadRequest
                 )
               )
           }
@@ -52,7 +47,7 @@ class AuthenticationController(implicit system: ActorSystem) extends Controller 
       }
     }
 
-  def execute(request: AuthenticationRequest): Future[AuthenticationResponse] = {
+  def execute(request: AuthenticationCommand): Future[AuthenticationResponse] = {
     val chatworkApiRepository = new ChatworkApiRepositoryImpl(config.getString("chatwork.api.url"), request.token)
     val useCase               = new AuthenticationUseCase(chatworkApiRepository, authenticationRepository)
     useCase.execute(request).map { accessToken =>
