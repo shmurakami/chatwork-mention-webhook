@@ -6,7 +6,7 @@ import com.shmrkm.chatworkWebhook.concerns.StopSystemAfterAll
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
 import com.shmrkm.chatworkWebhook.domain.model.message._
 import com.shmrkm.chatworkWebhook.domain.model.room.RoomId
-import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriber.ConsumedMessage
+import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriberProxy.ConsumedMessage
 import com.typesafe.config.ConfigFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike

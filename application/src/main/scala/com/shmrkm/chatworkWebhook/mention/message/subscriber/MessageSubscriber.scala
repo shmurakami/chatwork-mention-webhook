@@ -4,22 +4,17 @@ import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import akka.{Done, NotUsed}
-import com.redis._
 import com.shmrkm.chatworkMention.repository.{ChatworkApiRepository, ChatworkApiRepositoryImpl, MentionStreamRepositoryFactory}
 import com.shmrkm.chatworkWebhook.domain.model.chatwork.ApiToken
 import com.shmrkm.chatworkWebhook.domain.model.message.Message
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
-import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriber.{ConsumeError, ConsumedMessage}
-import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriberProxy.Start
+import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriberProxy.{ConsumeError, ConsumedMessage}
 import com.typesafe.config.Config
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Try}
 
 object MessageSubscriber {
-  case class ConsumedMessage(value: String)
-  case class ConsumeError(ex: Throwable)
-
   def props = Props(new MessageSubscriber)
   def name  = "message-subscriber"
 }
@@ -28,13 +23,12 @@ class MessageSubscriber extends Actor with ActorLogging with MentionStreamReposi
   import io.circe.generic.auto._
   import io.circe.parser._
 
-  implicit val ec: ExecutionContext = context.system.dispatcher
+  implicit val ec: ExecutionContext = context.dispatcher
   implicit val config: Config       = context.system.settings.config
 
   implicit val mat: Materializer = Materializer(context)
 
   // subscribe requires connection for only subscribing
-  val subscriberRepository = factoryMentionRepository()
   val mentionRepository = factoryMentionRepository()
   val channelName       = config.getString("redis.channel-name")
 
@@ -47,20 +41,11 @@ class MessageSubscriber extends Actor with ActorLogging with MentionStreamReposi
     )
 
   override def receive: Receive = {
-    case _: Start => subscriberRepository.subscribe(channelName)(registerConsumerReceiver)
-
     case message: ConsumedMessage => consumeFlow(message)
 
-    case e: ConsumeError => log.warning(s"error occurred $e")
-  }
-
-  def registerConsumerReceiver: PubSubMessage => Unit = {
-    case S(channel: String, _) => log.info(s"redis channel $channel subscribed")
-    case U(channel: String, _) => log.info(s"unsubscribed redis channel $channel")
-    case M(origChannel: String, message: String) =>
-      log.info(s"message published to channel $origChannel")
-      self ! ConsumedMessage(message)
-    case E(e) => log.error(s"subscribing error occurred $e")
+    case e: ConsumeError =>
+      log.warning(s"error occurred $e")
+      context.stop(self)
   }
 
   def consumeFlow(message: ConsumedMessage): Future[Try[Done]] = {
