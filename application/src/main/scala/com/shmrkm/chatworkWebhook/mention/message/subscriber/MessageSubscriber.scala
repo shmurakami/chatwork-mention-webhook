@@ -5,11 +5,10 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import akka.{Done, NotUsed}
 import com.redis._
-import com.shmrkm.chatworkMention.repository.{ChatworkApiRepository, ChatworkApiRepositoryImpl}
+import com.shmrkm.chatworkMention.repository.{ChatworkApiRepository, ChatworkApiRepositoryImpl, MentionStreamRepositoryFactory}
 import com.shmrkm.chatworkWebhook.domain.model.chatwork.ApiToken
 import com.shmrkm.chatworkWebhook.domain.model.message.Message
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
-import com.shmrkm.chatworkWebhook.mention.MentionStreamRepositoryFactory
 import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriber.{ConsumeError, ConsumedMessage}
 import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriberProxy.Start
 import com.typesafe.config.Config

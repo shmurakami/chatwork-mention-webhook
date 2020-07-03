@@ -1,8 +1,8 @@
 package com.shmrkm.chatworkWebhook.mention.mention
 
 import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Props}
+import com.shmrkm.chatworkMention.repository.MentionStreamRepositoryFactory
 import com.shmrkm.chatworkWebhook.domain.model.message.Message
-import com.shmrkm.chatworkWebhook.mention.MentionStreamRepositoryFactory
 import com.shmrkm.chatworkWebhook.mention.mention.MentionHandlerActor.{FailureToStore, SuccessToStore}
 import com.shmrkm.chatworkWebhook.mention.mention.MentionRecordActor.Record
 import com.typesafe.config.Config

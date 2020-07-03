@@ -2,60 +2,89 @@ package com.shmrkm.chatworkWebhook.mention.controller
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.{AuthenticationFailedRejection, Route}
 import com.redis.RedisClient
 import com.shmrkm.chatworkMention.exception.{InvalidAccountIdException, RequestFailureException}
-import com.shmrkm.chatworkMention.repository.{ChatworkApiRepositoryImpl, MentionRepositoryRedisImpl}
+import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, AuthenticationRepositoryFactory, ChatworkApiRepositoryImpl, MentionRepositoryRedisImpl}
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
-import com.shmrkm.chatworkWebhook.domain.model.chatwork.ApiToken
+import com.shmrkm.chatworkWebhook.domain.model.auth.AccessToken
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
 import com.shmrkm.chatworkWebhook.mention.protocol.read.MentionErrorResponse.InvalidRequest
 import com.shmrkm.chatworkWebhook.mention.protocol.read.MentionQuery
 import com.typesafe.scalalogging.Logger
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
-class MentionController(implicit system: ActorSystem) extends Controller {
+class MentionController(implicit system: ActorSystem) extends Controller with AuthenticationRepositoryFactory {
+
+  override implicit def ec: ExecutionContext = system.dispatcher
 
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
   import io.circe.generic.auto._
 
-  val chatworkApiConfig = system.settings.config.getConfig("chatwork.api")
-  val apiUrl            = chatworkApiConfig.getString("url")
-  // don't want to put resource to api-server
-  val redisConfig = system.settings.config.getConfig("redis")
+  val config = system.settings.config
+
+  val authRepository: AuthenticationRepository = factoryAuthenticationRepository(config)
+
+  val logger = Logger(classOf[MentionController])
+
+  //  implicit def rejectionHandler =
+//    RejectionHandler
+//      .newBuilder()
+//      .handle {
+//        case AuthenticationFailedRejection(cause, challenge) =>
+//          complete((StatusCodes.Unauthorized, "Invalid Request"))
+//      }
+//      .result()
+
+//  def verifyAccessToken(accountId: AccountId): Directive1[ApiToken] = {
+//    headerValueByName("X-Token") { token =>
+//      authRepository.resolve(AccessToken(token)) match {
+//        case Some(authentication) if (authentication.accountId == accountId) => extract()
+//        case None                                                            => reject(AuthenticationFailedRejection(CredentialsRejected, null))
+//      }
+//    }
+//  }
 
   def route: Route =
     get {
       extractExecutionContext { implicit ec =>
-        headerValueByName("X-ChatworkToken") { chatworkToken =>
-          parameters('account_id.as[Int]) { accountId =>
-            onSuccess(execute(MentionQuery(AccountId(accountId)), ApiToken(chatworkToken))) {
-              case Right(mentionList) => complete(mentionList)
-              case Left(_)            => complete(StatusCodes.BadRequest, InvalidRequest())
+        parameters('account_id.as[Int]) { accountId =>
+          // TODO FIXME validation
+          headerValueByName("X-Token") { token =>
+            onComplete(authRepository.resolve(AccessToken(token))) {
+              case Failure(ex) =>
+                logger.warn(s"failure to resolve authentication $ex")
+                complete("unexpected error occurred")
+              case Success(maybeAuthentication) =>
+                maybeAuthentication match {
+                  case Some(authentication) if authentication.accountId.value == accountId => {
+                    onSuccess(execute(MentionQuery(AccountId(accountId)))) {
+                      // Either? Try?
+                      case Right(mentionList) => complete(mentionList)
+                      case Left(_) => complete(StatusCodes.BadRequest, InvalidRequest())
+                    }
+                  }
+                  case None => reject(AuthenticationFailedRejection(CredentialsRejected, null))
+                }
             }
           }
         }
       }
     }
 
-  def execute(query: MentionQuery, token: ApiToken)(
-      implicit ec: ExecutionContext
-  ): Future[Either[String, MentionList]] = {
+  def execute(query: MentionQuery): Future[Either[String, MentionList]] = {
     // seems Either Left should be any type
 
-    // validate token
-    val chatworkApiRepository = new ChatworkApiRepositoryImpl(apiUrl, token)
     val mentionRepository = new MentionRepositoryRedisImpl(
-      new RedisClient(redisConfig.getString("host"), redisConfig.getInt("port"))
+      new RedisClient(config.getString("redis.host"), config.getInt("redis.port"))
     )
 
-    val logger = Logger(classOf[MentionController])
-    (for {
-      - <- chatworkApiRepository.resolveAccount(query.accountId)
-      mentionList <- mentionRepository.resolve(query.accountId)
-    } yield Right(mentionList))
+    mentionRepository.resolve(query.accountId)
+      .map(Right(_))
       .recover {
         case e: InvalidAccountIdException =>
           logger.warn(e.toString)

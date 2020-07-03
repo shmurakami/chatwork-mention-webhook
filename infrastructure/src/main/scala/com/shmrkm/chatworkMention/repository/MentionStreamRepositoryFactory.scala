@@ -1,7 +1,6 @@
-package com.shmrkm.chatworkWebhook.mention
+package com.shmrkm.chatworkMention.repository
 
 import com.redis.RedisClient
-import com.shmrkm.chatworkMention.repository.MentionRepositoryRedisImpl
 import com.typesafe.config.Config
 
 import scala.concurrent.ExecutionContext

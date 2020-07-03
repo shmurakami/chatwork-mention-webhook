@@ -1,11 +1,10 @@
 package com.shmrkm.chatworkWebhook.mention.controller
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.{ContentTypes, HttpResponse, StatusCodes}
+import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import com.redis.RedisClient
-import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, AuthenticationRepositoryImpl, ChatworkApiRepositoryImpl}
+import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, AuthenticationRepositoryFactory, ChatworkApiRepositoryImpl}
 import com.shmrkm.chatworkWebhook.auth.usecase.AuthenticationUseCase
 import com.shmrkm.chatworkWebhook.mention.protocol.command.{AuthenticationCommand, AuthenticationRequest, AuthenticationResponse, UnauthenticatedResponse}
 import com.typesafe.scalalogging.Logger
@@ -13,7 +12,7 @@ import com.typesafe.scalalogging.Logger
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-class AuthenticationController(implicit system: ActorSystem) extends Controller {
+class AuthenticationController(implicit system: ActorSystem) extends Controller with AuthenticationRepositoryFactory {
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
   import io.circe.generic.auto._
   import io.circe.syntax._
@@ -24,9 +23,7 @@ class AuthenticationController(implicit system: ActorSystem) extends Controller 
 
   val config = system.settings.config
 
-  val authenticationRepository: AuthenticationRepository = new AuthenticationRepositoryImpl(
-    new RedisClient(config.getString("redis.host"), config.getInt("redis.port"))
-  )
+  val authenticationRepository: AuthenticationRepository = factoryAuthenticationRepository(config)
 
   def route: Route =
     post {

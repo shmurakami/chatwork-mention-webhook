@@ -45,6 +45,7 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
 
   override def resolve(accountId: AccountId): Future[MentionList] = Future {
     val stored = redisClient.get(readModelKey(accountId)).getOrElse("""{"list":[]}""")
+    // TODO left
     parse(stored).right.flatMap(_.as[MentionList]) match {
       case Right(mentionList) => mentionList
       case Left(_) =>
