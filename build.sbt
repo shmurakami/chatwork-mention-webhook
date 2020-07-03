@@ -52,19 +52,35 @@ val `modules` = (project in file("modules"))
     `infrastructure`,
   )
 
-val `api-server` = (project in file("api-server"))
+val `api-server` = (project in file("application/api-server"))
   .settings(baseSettings)
   .settings(
     name := "api-server",
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http"   % akkaHttpVersion,
-      "com.typesafe.akka" %% "akka-stream" % akkaStreamVersion,
       "io.circe" %% "circe-core" % circeVersion,
       "io.circe" %% "circe-generic" % circeVersion,
       "io.circe" %% "circe-parser" % circeVersion,
       // https://mvnrepository.com/artifact/de.heikoseeberger/akka-http-circe
       "de.heikoseeberger" %% "akka-http-circe" % akkaCirceVersion,
+    )
+  )
+  .dependsOn(
+    `domain`,
+    `interface`,
+    `infrastructure`,
+    `modules`,
+  )
 
+val `read-model-updater` = (project in file("application/read-model-updater"))
+  .settings(baseSettings)
+  .settings(
+    name := "read-model-updater",
+    libraryDependencies ++= Seq(
+      "com.typesafe.akka" %% "akka-stream" % akkaStreamVersion,
+      "io.circe" %% "circe-core" % circeVersion,
+      "io.circe" %% "circe-generic" % circeVersion,
+      "io.circe" %% "circe-parser" % circeVersion,
     )
   )
   .dependsOn(
@@ -82,4 +98,5 @@ val root = (project in file("."))
     `domain`,
     `infrastructure`,
     `api-server`,
+    `read-model-updater`,
   )
