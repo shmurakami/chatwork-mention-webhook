@@ -2,7 +2,8 @@ package com.shmrkm.chatworkWebhook.mention
 
 import java.util.concurrent.TimeUnit
 
-import akka.actor.ActorSystem
+import akka.Done
+import akka.actor.{ActorSystem, CoordinatedShutdown, PoisonPill}
 import akka.http.scaladsl.Http
 import com.shmrkm.chatworkWebhook.mention.controller.{AuthenticationController, MentionController, WebhookController}
 import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriberProxy
@@ -38,11 +39,12 @@ object Main {
 
     val terminationDuration = FiniteDuration(config.getDuration("chatwork-mention-webhook.api-server.termination-duration").toMillis, TimeUnit.MILLISECONDS)
 
-    sys.addShutdownHook {
-      val future = Future
-        .successful()
-        .flatMap(_ => bindingFuture.flatMap(_.unbind()))
-      Await.result(future, terminationDuration)
+    CoordinatedShutdown(system).addTask(CoordinatedShutdown.PhaseBeforeServiceUnbind, "shutdown http server") { () =>
+      Future {
+        bindingFuture.flatMap(_.terminate(terminationDuration))
+        system.stop(subscriber)
+        Done.done()
+      }
     }
   }
 }
