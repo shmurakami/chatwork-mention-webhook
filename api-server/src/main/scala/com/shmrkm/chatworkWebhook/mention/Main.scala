@@ -22,7 +22,7 @@ object Main {
 
     // start read-model-updater
     // TODO run it as another project
-    val subscriber = system.actorOf(MessageSubscriberProxy.props, "message-subscriber")
+    val subscriber = system.actorOf(MessageSubscriberProxy.props, MessageSubscriberProxy.name)
     subscriber ! Start()
 
     // TODO use airframe

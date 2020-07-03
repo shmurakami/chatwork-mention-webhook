@@ -8,6 +8,8 @@ object MessageSubscriberProxy {
   case class Start() extends Command
 
   def props = Props(new MessageSubscriberProxy)
+
+  def name = "message-subscriber-proxy"
 }
 
 /**
@@ -29,7 +31,7 @@ class MessageSubscriberProxy extends Actor with ActorLogging {
 
   private def createAndForward(command: Command) = createSubscriber() forward command
 
-  private def createSubscriber(): ActorRef = context.system.actorOf(MessageSubscriber.props)
+  private def createSubscriber(): ActorRef = context.system.actorOf(MessageSubscriber.props, MessageSubscriber.name)
 
   private def forwardCmd(command: Command)(ref: ActorRef) = ref forward command
 }

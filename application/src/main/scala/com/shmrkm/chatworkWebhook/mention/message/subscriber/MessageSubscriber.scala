@@ -53,7 +53,7 @@ class MessageSubscriber extends Actor with ActorLogging with MentionStreamReposi
     case S(channel: String, _) => log.info(s"redis channel $channel subscribed")
     case U(channel: String, _) => log.info(s"unsubscribed redis channel $channel")
     case M(origChannel: String, message: String) =>
-      log.info(s"message $message published to channel $origChannel")
+      log.info(s"message published to channel $origChannel")
       self ! ConsumedMessage(message)
     case E(e) => log.warning(s"subscribing error occurred $e")
   }
@@ -78,10 +78,9 @@ class MessageSubscriber extends Actor with ActorLogging with MentionStreamReposi
   }
 
   def retrieveInsufficientDataAndBuildMessage(): Flow[Message, QueryMessage, NotUsed] = {
-    // TODO retrieve some data from cw api
     Flow[Message]
       .mapAsync(1) { message =>
-        log.info(s"retrieve for message $message")
+        log.info(s"retrieve for message")
         (for {
           room        <- chatworkApiRepository.retrieveRoom(message.roomId)
           fromAccount <- chatworkApiRepository.retrieveAccount(message.roomId, message.fromAccountId)
@@ -110,7 +109,7 @@ class MessageSubscriber extends Actor with ActorLogging with MentionStreamReposi
   def updateReadModel(): Flow[QueryMessage, Done, NotUsed] = {
     Flow[QueryMessage]
       .map { message =>
-        log.info(s"message $message")
+        log.info("update read model")
         for {
           mentions <- mentionRepository.resolve(message.toAccountId)
           updatedMentions <- Future {

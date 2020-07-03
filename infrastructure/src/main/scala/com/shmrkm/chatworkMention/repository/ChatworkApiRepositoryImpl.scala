@@ -28,8 +28,7 @@ class ChatworkApiRepositoryImpl(url: String, token: ApiToken)(
     val roomUrl = s"${url}/rooms/${roomId.value}"
     Http()
       .singleRequest(request(roomUrl))
-//      .flatMap(Unmarshal(_).to[RoomResponse])
-      .flatMap(r => {logger.info(r.toString());Unmarshal(r).to[RoomResponse]})
+      .flatMap(Unmarshal(_).to[RoomResponse])
       .map(response => Room(roomId, RoomName(response.name), RoomIconUrl(response.icon_path)))
   }
 
