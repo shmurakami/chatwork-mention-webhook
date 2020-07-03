@@ -6,7 +6,7 @@ import akka.http.scaladsl.server.{Directive1, MissingHeaderRejection, Route}
 import akka.pattern.ask
 import akka.util.Timeout
 import com.shmrkm.chatworkWebhook.mention.mention.MentionHandlerActor
-import com.shmrkm.chatworkWebhook.mention.mention.MentionHandlerActor.GetMention
+import com.shmrkm.chatworkWebhook.mention.mention.MentionHandlerActor.ReceiveMention
 import com.shmrkm.chatworkWebhook.mention.protocol.command.WebhookResponse
 import com.shmrkm.chatworkWebhook.mention.protocol.write.{MentionCommand, WebhookRequest}
 
@@ -47,6 +47,6 @@ class WebhookController(implicit system: ActorSystem) extends Controller {
     * store to queue
     */
   def execute(request: MentionCommand)(implicit system: ActorSystem, ec: ExecutionContext): Future[WebhookResponse] = {
-    system.actorOf(MentionHandlerActor.props).ask(GetMention(request)).map(_ => WebhookResponse())
+    system.actorOf(MentionHandlerActor.props).ask(ReceiveMention(request)).map(_ => WebhookResponse())
   }
 }

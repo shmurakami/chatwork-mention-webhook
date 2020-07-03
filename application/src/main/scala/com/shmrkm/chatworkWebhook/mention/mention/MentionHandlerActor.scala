@@ -8,7 +8,7 @@ object MentionHandlerActor {
   def props = Props(new MentionHandlerActors)
 
   sealed trait Command
-  case class GetMention(command: MentionCommand) extends Command
+  case class ReceiveMention(command: MentionCommand) extends Command
 
   sealed trait StoreResult
   case class SuccessToStore()              extends StoreResult
@@ -22,6 +22,6 @@ class MentionHandlerActors extends Actor with ActorLogging {
   implicit val executionContext = context.dispatcher
 
   override def receive: Receive = {
-    case GetMention(command) => context.system.actorOf(MentionRecordActor.props(sender())) ! Record(command.message)
+    case ReceiveMention(command) => context.system.actorOf(MentionRecordActor.props(sender())) ! Record(command.message)
   }
 }
