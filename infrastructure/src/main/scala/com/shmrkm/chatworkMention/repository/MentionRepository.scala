@@ -29,12 +29,10 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
 
   private val logger = Logger(classOf[MentionRepository])
 
-  override def publish(message: Message, channelName: String): Future[Try[Boolean]] = {
-    Future {
-      redisClient.publish(channelName, message.asJson.toString) match {
-        case Some(_) => logger.info(s"succeeded to publish to channel $channelName"); Success(true)
-        case None    => logger.warn("failed to publish"); Failure(new StoreException("failed to publish to redis"))
-      }
+  override def publish(message: Message, channelName: String): Future[Try[Boolean]] = Future {
+    redisClient.publish(channelName, message.asJson.toString) match {
+      case Some(_) => logger.info(s"succeeded to publish to channel $channelName"); Success(true)
+      case None => logger.warn("failed to publish"); Failure(new StoreException("failed to publish to redis"))
     }
   }
 
@@ -44,20 +42,25 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
   }
 
   override def resolve(accountId: AccountId): Future[MentionList] = Future {
-    val stored = redisClient.get(readModelKey(accountId)).getOrElse("""{"list":[]}""")
-    // TODO left
-    parse(stored).right.flatMap(_.as[MentionList]) match {
-      case Right(mentionList) => mentionList
-      case Left(_) =>
-        logger.info(s"empty mention list for account: ${accountId.value}")
+    redisClient.get(readModelKey(accountId)) match {
+      case Some(mention) =>
+        // TODO left
+        parse(mention).right.flatMap(_.as[MentionList]) match {
+          case Right(mentionList) => mentionList
+          case Left(_) =>
+            logger.info(s"empty mention list for account: ${accountId.value}")
+            MentionList(Seq.empty)
+        }
+
+      case None =>
+        logger.info(s"mention is empty for account $accountId")
         MentionList(Seq.empty)
     }
   }
 
   override def updateReadModel(toAccountId: AccountId, mentionList: MentionList): Future[Try[Done]] = {
-    logger.info("do update read model")
     Future {
-      if (redisClient.set(readModelKey(toAccountId), mentionList.asJson.toString)) { logger.info("updated read model");Success(Done)}
+      if (redisClient.set(readModelKey(toAccountId), mentionList.asJson.toString)) Success(Done)
       else Failure(new StoreException("failed to update read model"))
     }
   }

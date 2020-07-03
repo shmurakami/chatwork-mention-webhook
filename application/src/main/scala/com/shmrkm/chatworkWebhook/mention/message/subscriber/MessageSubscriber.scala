@@ -14,7 +14,7 @@ import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriberPr
 import com.typesafe.config.Config
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Failure
+import scala.util.{Failure, Try}
 
 object MessageSubscriber {
   case class ConsumedMessage(value: String)
@@ -33,16 +33,21 @@ class MessageSubscriber extends Actor with ActorLogging with MentionStreamReposi
 
   implicit val mat: Materializer = Materializer(context)
 
+  // subscribe requires connection for only subscribing
+  val subscriberRepository = factoryMentionRepository()
   val mentionRepository = factoryMentionRepository()
   val channelName       = config.getString("redis.channel-name")
 
   implicit val system: ActorSystem = context.system
 
   val chatworkApiRepository: ChatworkApiRepository =
-    new ChatworkApiRepositoryImpl(config.getString("chatwork.api.url"), ApiToken(config.getString("chatwork.api.token")))
+    new ChatworkApiRepositoryImpl(
+      config.getString("chatwork.api.url"),
+      ApiToken(config.getString("chatwork.api.token"))
+    )
 
   override def receive: Receive = {
-    case _: Start => mentionRepository.subscribe(channelName)(registerConsumerReceiver)
+    case _: Start => subscriberRepository.subscribe(channelName)(registerConsumerReceiver)
 
     case message: ConsumedMessage => consumeFlow(message)
 
@@ -55,10 +60,10 @@ class MessageSubscriber extends Actor with ActorLogging with MentionStreamReposi
     case M(origChannel: String, message: String) =>
       log.info(s"message published to channel $origChannel")
       self ! ConsumedMessage(message)
-    case E(e) => log.warning(s"subscribing error occurred $e")
+    case E(e) => log.error(s"subscribing error occurred $e")
   }
 
-  def consumeFlow(message: ConsumedMessage): Future[Done] = {
+  def consumeFlow(message: ConsumedMessage): Future[Try[Done]] = {
 
     /**
       * whats to do?
@@ -80,7 +85,6 @@ class MessageSubscriber extends Actor with ActorLogging with MentionStreamReposi
   def retrieveInsufficientDataAndBuildMessage(): Flow[Message, QueryMessage, NotUsed] = {
     Flow[Message]
       .mapAsync(1) { message =>
-        log.info(s"retrieve for message")
         (for {
           room        <- chatworkApiRepository.retrieveRoom(message.roomId)
           fromAccount <- chatworkApiRepository.retrieveAccount(message.roomId, message.fromAccountId)
@@ -106,10 +110,9 @@ class MessageSubscriber extends Actor with ActorLogging with MentionStreamReposi
       }
   }
 
-  def updateReadModel(): Flow[QueryMessage, Done, NotUsed] = {
+  def updateReadModel(): Flow[QueryMessage, Try[Done], NotUsed] = {
     Flow[QueryMessage]
-      .map { message =>
-        log.info("update read model")
+      .mapAsync(1) { message =>
         for {
           mentions <- mentionRepository.resolve(message.toAccountId)
           updatedMentions <- Future {
@@ -123,7 +126,6 @@ class MessageSubscriber extends Actor with ActorLogging with MentionStreamReposi
               Failure(exception)
             // then what's happened?
           }
-        Done
       }
   }
 }
