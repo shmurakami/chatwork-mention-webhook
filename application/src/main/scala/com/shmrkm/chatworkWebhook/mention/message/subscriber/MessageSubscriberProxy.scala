@@ -12,17 +12,6 @@ object MessageSubscriberProxy {
   def name = "message-subscriber-proxy"
 }
 
-/**
-  * whats to do
-  * run consumer via supervisor
-  * start subscribing redis channel
-  *
-  * subscriber
-  * get message
-  * call chatwork api to retrieve room name, account name, icon url
-  * update redis read model
-  * notification to FCM
-  */
 class MessageSubscriberProxy extends Actor with ActorLogging {
 
   override def receive: Receive = {

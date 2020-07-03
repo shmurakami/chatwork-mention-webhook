@@ -64,15 +64,6 @@ class MessageSubscriber extends Actor with ActorLogging with MentionStreamReposi
   }
 
   def consumeFlow(message: ConsumedMessage): Future[Try[Done]] = {
-
-    /**
-      * whats to do?
-      * get message
-      * json parse && map to domain.Message
-      * collect insufficient information from CW api
-      * update read model
-      * done
-      */
     Source
       .single(message)
       .map { message => decode[Message](message.value).getOrElse(null) }
