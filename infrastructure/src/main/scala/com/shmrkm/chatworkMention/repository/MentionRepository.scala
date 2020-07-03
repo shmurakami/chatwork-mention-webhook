@@ -32,7 +32,7 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
   override def publish(message: Message, channelName: String): Future[Try[Boolean]] = {
     Future {
       redisClient.publish(channelName, message.asJson.toString) match {
-        case Some(_) => logger.info("succeeded to publish"); Success(true)
+        case Some(_) => logger.info(s"succeeded to publish to channel $channelName"); Success(true)
         case None    => logger.warn("failed to publish"); Failure(new StoreException("failed to publish to redis"))
       }
     }

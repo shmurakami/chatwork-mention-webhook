@@ -46,7 +46,7 @@ class WebhookController(implicit system: ActorSystem) extends Controller {
   /**
     * store to queue
     */
-  def execute(request: MentionCommand)(implicit system: ActorSystem, ec: ExecutionContext): Future[WebhookResponse] = {
+  def execute(request: MentionCommand)(implicit ec: ExecutionContext): Future[WebhookResponse] = {
     system.actorOf(MentionHandlerActor.props).ask(ReceiveMention(request)).map(_ => WebhookResponse())
   }
 }
