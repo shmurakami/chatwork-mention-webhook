@@ -3,15 +3,13 @@ package com.shmrkm.chatworkWebhook.mention
 import java.util.concurrent.TimeUnit
 
 import akka.Done
-import akka.actor.{ActorSystem, CoordinatedShutdown, PoisonPill}
+import akka.actor.{ActorSystem, CoordinatedShutdown}
 import akka.http.scaladsl.Http
 import com.shmrkm.chatworkWebhook.mention.controller.{AuthenticationController, MentionController, WebhookController}
-import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriberProxy
-import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriberProxy.Start
 import com.typesafe.config.ConfigFactory
 
+import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
-import scala.concurrent.{Await, Future}
 
 object Main {
 
@@ -20,11 +18,6 @@ object Main {
 
     implicit val system           = ActorSystem("mention-webhook", config)
     implicit val executionContext = system.dispatcher
-
-    // start read-model-updater
-    // TODO run it as another project
-    val subscriber = system.actorOf(MessageSubscriberProxy.props, MessageSubscriberProxy.name)
-    subscriber ! Start()
 
     // TODO use airframe
     val routes = new Routes(
@@ -42,7 +35,6 @@ object Main {
     CoordinatedShutdown(system).addTask(CoordinatedShutdown.PhaseBeforeServiceUnbind, "shutdown http server") { () =>
       Future {
         bindingFuture.flatMap(_.terminate(terminationDuration))
-        system.stop(subscriber)
         Done.done()
       }
     }
