@@ -1,4 +1,5 @@
 import Settings._
+import SbtAssembly._
 
 val `domain` = (project in file("domain"))
   .settings(
@@ -54,8 +55,10 @@ val `modules` = (project in file("modules"))
 
 val `api-server` = (project in file("application/api-server"))
   .settings(baseSettings)
+  .settings(assemblyCommonSettings)
   .settings(
     name := "api-server",
+    mainClass in assembly := Some("com.shmrkm.chatworkWebhook.mention.Main"),
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http"   % akkaHttpVersion,
       "io.circe" %% "circe-core" % circeVersion,
@@ -74,8 +77,10 @@ val `api-server` = (project in file("application/api-server"))
 
 val `read-model-updater` = (project in file("application/read-model-updater"))
   .settings(baseSettings)
+  .settings(assemblyCommonSettings)
   .settings(
     name := "read-model-updater",
+    mainClass in assembly := Some("com.shmrkm.chatworkWebhook.readModelUpdater.Main"),
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-stream" % akkaStreamVersion,
       "io.circe" %% "circe-core" % circeVersion,
