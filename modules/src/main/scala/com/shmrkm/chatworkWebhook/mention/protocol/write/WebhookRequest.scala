@@ -1,10 +1,19 @@
 package com.shmrkm.chatworkWebhook.mention.protocol.write
 
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
-import com.shmrkm.chatworkWebhook.domain.model.message.{MessageBody, MessageId, SendTime, UpdateTime}
+import com.shmrkm.chatworkWebhook.domain.model.message.{ MessageBody, MessageId, SendTime, UpdateTime }
 import com.shmrkm.chatworkWebhook.domain.model.room.RoomId
 
 case class WebhookRequest(
+    webhook_setting_id: String,
+    webhook_event_type: String,
+    webhook_event_time: Long,
+    webhook_event: WebhookEvent
+) {
+  def mentionCommand: MentionCommand = webhook_event.mentionCommand
+}
+
+case class WebhookEvent(
     from_account_id: Int,
     to_account_id: Int,
     room_id: Int,
