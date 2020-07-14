@@ -23,7 +23,7 @@ class AuthenticationController(implicit system: ActorSystem) extends Controller 
 
   val config = system.settings.config
 
-  val authenticationRepository: AuthenticationRepository = factoryAuthenticationRepository(config)
+  val authenticationRepository: AuthenticationRepository = factoryAuthenticationRepository()
 
   def route: Route =
     post {

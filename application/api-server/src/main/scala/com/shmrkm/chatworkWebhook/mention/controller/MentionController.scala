@@ -5,9 +5,8 @@ import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.{AuthenticationFailedRejection, Route}
-import com.redis.RedisClient
 import com.shmrkm.chatworkMention.exception.{InvalidAccountIdException, RequestFailureException}
-import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, AuthenticationRepositoryFactory, ChatworkApiRepositoryImpl, MentionRepositoryRedisImpl}
+import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, AuthenticationRepositoryFactory, MentionRepository, MentionRepositoryFactory}
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
 import com.shmrkm.chatworkWebhook.domain.model.auth.AccessToken
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
@@ -18,16 +17,16 @@ import com.typesafe.scalalogging.Logger
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-class MentionController(implicit system: ActorSystem) extends Controller with AuthenticationRepositoryFactory {
+class MentionController(implicit system: ActorSystem) extends Controller with AuthenticationRepositoryFactory with MentionRepositoryFactory {
 
   override implicit def ec: ExecutionContext = system.dispatcher
 
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
   import io.circe.generic.auto._
 
-  val config = system.settings.config
+  val mentionRepository: MentionRepository = factoryMentionRepository()
 
-  val authRepository: AuthenticationRepository = factoryAuthenticationRepository(config)
+  val authRepository: AuthenticationRepository = factoryAuthenticationRepository()
 
   val logger = Logger(classOf[MentionController])
 
@@ -78,10 +77,6 @@ class MentionController(implicit system: ActorSystem) extends Controller with Au
 
   def execute(query: MentionQuery): Future[Either[String, MentionList]] = {
     // seems Either Left should be any type
-
-    val mentionRepository = new MentionRepositoryRedisImpl(
-      new RedisClient(config.getString("redis.host"), config.getInt("redis.port"))
-    )
 
     mentionRepository.resolve(query.accountId)
       .map(Right(_))
