@@ -11,17 +11,19 @@ import com.typesafe.scalalogging.Logger
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
-trait MentionRepository {
+trait StreamRepository {
   def publish(message: Message, channelName: String): Future[Try[Boolean]]
 
   def subscribe(channelName: String)(consumer: PubSubMessage => Unit): Unit
+}
 
+trait MentionRepository {
   def resolve(accountId: AccountId): Future[MentionList]
 
   def updateReadModel(toAccountId: AccountId, mentionList: MentionList): Future[Try[Done]]
 }
 
-class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: ExecutionContext) extends MentionRepository {
+class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: ExecutionContext) extends StreamRepository with MentionRepository {
 
   import io.circe.generic.auto._
   import io.circe.parser._
