@@ -6,15 +6,16 @@ import com.shmrkm.chatworkMention.exception.StoreException
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
 import com.shmrkm.chatworkWebhook.domain.model.message.Message
+import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 trait StreamRepository {
-  def publish(message: Message, channelName: String): Future[Try[Boolean]]
+  def publish(message: Message): Future[Try[Boolean]]
 
-  def subscribe(channelName: String)(consumer: PubSubMessage => Unit): Unit
+  def subscribe(consumer: PubSubMessage => Unit): Unit
 }
 
 trait MentionRepository {
@@ -29,19 +30,23 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
   import io.circe.parser._
   import io.circe.syntax._
 
-  private val logger = Logger(classOf[MentionRepository])
+  private val logger = Logger(classOf[MentionRepository]);
+  private val config = ConfigFactory.load("redis")
 
-  override def publish(message: Message, channelName: String): Future[Try[Boolean]] = Future {
+  override def publish(message: Message): Future[Try[Boolean]] = Future {
+    val channelName = resolveStreamChannelName()
     redisClient.publish(channelName, message.asJson.toString) match {
       case Some(_) => logger.info(s"succeeded to publish to channel $channelName"); Success(true)
       case None => logger.warn("failed to publish"); Failure(new StoreException("failed to publish to redis"))
     }
   }
 
-  override def subscribe(channelName: String)(consumer: PubSubMessage => Unit): Unit = {
+  override def subscribe(consumer: PubSubMessage => Unit): Unit = {
     logger.info("start subscribe")
-    redisClient.subscribe(channelName)(consumer)
+    redisClient.subscribe(resolveStreamChannelName())(consumer)
   }
+
+  private def resolveStreamChannelName(): String = config.getString("channel-name")
 
   override def resolve(accountId: AccountId): Future[MentionList] = Future {
     redisClient.get(readModelKey(accountId)) match {

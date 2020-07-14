@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import akka.{Done, NotUsed}
-import com.shmrkm.chatworkMention.repository.{ChatworkApiRepository, ChatworkApiRepositoryImpl, MentionStreamRepositoryFactory}
+import com.shmrkm.chatworkMention.repository.{ChatworkApiRepository, ChatworkApiRepositoryImpl, MentionRepositoryFactory, MentionStreamRepositoryFactory}
 import com.shmrkm.chatworkWebhook.domain.model.chatwork.ApiToken
 import com.shmrkm.chatworkWebhook.domain.model.message.Message
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
@@ -19,7 +19,7 @@ object MessageSubscriber {
   def name  = "message-subscriber"
 }
 
-class MessageSubscriber extends Actor with ActorLogging with MentionStreamRepositoryFactory {
+class MessageSubscriber extends Actor with ActorLogging with MentionStreamRepositoryFactory with MentionRepositoryFactory {
   import io.circe.generic.auto._
   import io.circe.parser._
 
@@ -29,8 +29,7 @@ class MessageSubscriber extends Actor with ActorLogging with MentionStreamReposi
   implicit val mat: Materializer = Materializer(context)
 
   // subscribe requires connection for only subscribing
-  val mentionRepository = factoryMentionRepository()
-  val channelName       = config.getString("redis.channel-name")
+  private val mentionRepository = factoryMentionRepository()
 
   implicit val system: ActorSystem = context.system
 

@@ -28,10 +28,10 @@ class MessageSubscriberProxy extends Actor with ActorLogging with MentionStreamR
   implicit val ec: ExecutionContext = context.dispatcher
   implicit val config: Config       = context.system.settings.config
 
-  val subscriberRepository = factoryMentionRepository()
+  private val subscriberRepository = factoryStreamRepository()
 
   override def receive: Receive = {
-    case _: Start => subscriberRepository.subscribe(config.getString("redis.channel-name"))(subscriber)
+    case _: Start => subscriberRepository.subscribe(subscriber)
 
     case cmd: Command => context.child(MessageSubscriber.name).fold(createAndForward(cmd))(forwardCmd(cmd))
   }
