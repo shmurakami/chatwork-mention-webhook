@@ -4,8 +4,7 @@ import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import akka.{Done, NotUsed}
-import com.shmrkm.chatworkMention.repository.{ChatworkApiRepository, ChatworkApiRepositoryImpl, MentionRepositoryFactory, MentionStreamRepositoryFactory}
-import com.shmrkm.chatworkWebhook.domain.model.chatwork.ApiToken
+import com.shmrkm.chatworkMention.repository.{ChatworkApiClientFactory, ChatworkApiRepository, MentionRepositoryFactory, MentionStreamRepositoryFactory}
 import com.shmrkm.chatworkWebhook.domain.model.message.Message
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
 import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriberProxy.{ConsumeError, ConsumedMessage}
@@ -19,7 +18,7 @@ object MessageSubscriber {
   def name  = "message-subscriber"
 }
 
-class MessageSubscriber extends Actor with ActorLogging with MentionStreamRepositoryFactory with MentionRepositoryFactory {
+class MessageSubscriber extends Actor with ActorLogging with MentionStreamRepositoryFactory with MentionRepositoryFactory with ChatworkApiClientFactory {
   import io.circe.generic.auto._
   import io.circe.parser._
 
@@ -33,11 +32,7 @@ class MessageSubscriber extends Actor with ActorLogging with MentionStreamReposi
 
   implicit val system: ActorSystem = context.system
 
-  val chatworkApiRepository: ChatworkApiRepository =
-    new ChatworkApiRepositoryImpl(
-      config.getString("chatwork.api.url"),
-      ApiToken(config.getString("chatwork.api.token"))
-    )
+  val chatworkApiRepository: ChatworkApiRepository = factoryChatworkApiClient()
 
   override def receive: Receive = {
     case message: ConsumedMessage => consumeFlow(message)
