@@ -23,7 +23,7 @@ class MentionRecordActor(refTo: ActorRef) extends Actor with ActorLogging with M
   override def receive: Receive = {
     case Record(message) => refTo forward mentionRepository.publish(message).map {
       case Success(_) => SuccessToStore()
-      case Failure(ex: Exception) => FailureToStore(ex)
+      case Failure(ex: Throwable) => FailureToStore(ex)
     }
   }
 }

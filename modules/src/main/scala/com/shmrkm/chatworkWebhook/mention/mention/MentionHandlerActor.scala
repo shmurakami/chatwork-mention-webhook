@@ -12,7 +12,7 @@ object MentionHandlerActor {
 
   sealed trait StoreResult
   case class SuccessToStore()              extends StoreResult
-  case class FailureToStore(ex: Exception) extends StoreResult
+  case class FailureToStore(ex: Throwable) extends StoreResult
 
 }
 
