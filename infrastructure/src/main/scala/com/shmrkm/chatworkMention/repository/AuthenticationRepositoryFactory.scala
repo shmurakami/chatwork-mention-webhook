@@ -4,7 +4,7 @@ import com.redis.RedisClient
 
 trait AuthenticationRepositoryFactory extends RedisRepositoryFactory {
   def factoryAuthenticationRepository(): AuthenticationRepository = {
-    new AuthenticationRepositoryImpl(new RedisClient(config.getString("host"), config.getInt("port")))
+    new AuthenticationRepositoryImpl(new RedisClient(redisConfig.getString("redis.host"), redisConfig.getInt("redis.port")))
   }
 
 }

@@ -8,11 +8,11 @@ import scala.concurrent.ExecutionContext
 private[repository] trait RedisRepositoryFactory {
   implicit def ec: ExecutionContext
 
-  private val config = ConfigFactory.load("redis")
+  private[repository] val redisConfig = ConfigFactory.load("redis")
 
-  def factory() = {
+  private[repository] def factory() = {
     new MentionRepositoryRedisImpl(
-      new RedisClient(config.getString("redis.host"), config.getInt("redis.port"))
+      new RedisClient(redisConfig.getString("redis.host"), redisConfig.getInt("redis.port"))
     )
   }
 }

@@ -46,7 +46,7 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
     redisClient.subscribe(resolveStreamChannelName())(consumer)
   }
 
-  private def resolveStreamChannelName(): String = config.getString("channel-name")
+  private def resolveStreamChannelName(): String = config.getString("redis.channel-name")
 
   override def resolve(accountId: AccountId): Future[MentionList] = Future {
     redisClient.get(readModelKey(accountId)) match {
