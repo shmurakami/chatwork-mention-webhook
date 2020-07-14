@@ -10,8 +10,7 @@ import akka.pattern.ask
 import akka.util.{ByteString, Timeout}
 import com.shmrkm.chatworkWebhook.mention.mention.MentionHandlerActor.ReceiveMention
 import com.shmrkm.chatworkWebhook.mention.mention.{HMACGenerator, MentionHandlerActor}
-import com.shmrkm.chatworkWebhook.mention.protocol.command.WebhookResponse
-import com.shmrkm.chatworkWebhook.mention.protocol.write.{MentionCommand, WebhookRequest}
+import com.shmrkm.chatworkWebhook.mention.protocol.command.{MentionCommand, WebhookRequest, WebhookResponse}
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}

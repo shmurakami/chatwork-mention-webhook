@@ -2,7 +2,7 @@ package com.shmrkm.chatworkWebhook.mention.mention
 
 import akka.actor.{Actor, ActorLogging, Props}
 import com.shmrkm.chatworkWebhook.mention.mention.MentionRecordActor.Record
-import com.shmrkm.chatworkWebhook.mention.protocol.write.MentionCommand
+import com.shmrkm.chatworkWebhook.mention.protocol.command.MentionCommand
 
 object MentionHandlerActor {
   def props = Props(new MentionHandlerActors)

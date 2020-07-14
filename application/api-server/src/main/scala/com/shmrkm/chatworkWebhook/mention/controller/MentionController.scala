@@ -10,8 +10,9 @@ import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, Authenti
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
 import com.shmrkm.chatworkWebhook.domain.model.auth.AccessToken
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
-import com.shmrkm.chatworkWebhook.mention.protocol.read.MentionErrorResponse.InvalidRequest
-import com.shmrkm.chatworkWebhook.mention.protocol.read.MentionQuery
+import com.shmrkm.chatworkWebhook.mention.protocol.query
+import com.shmrkm.chatworkWebhook.mention.protocol.query.MentionErrorResponse.InvalidRequest
+import com.shmrkm.chatworkWebhook.mention.protocol.query.MentionQuery
 import com.typesafe.scalalogging.Logger
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -61,7 +62,7 @@ class MentionController(implicit system: ActorSystem) extends Controller with Au
               case Success(maybeAuthentication) =>
                 maybeAuthentication match {
                   case Some(authentication) if authentication.accountId.value == accountId => {
-                    onSuccess(execute(MentionQuery(AccountId(accountId)))) {
+                    onSuccess(execute(query.MentionQuery(AccountId(accountId)))) {
                       // Either? Try?
                       case Right(mentionList) => complete(mentionList)
                       case Left(_) => complete(StatusCodes.BadRequest, InvalidRequest())

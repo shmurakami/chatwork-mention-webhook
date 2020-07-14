@@ -1,4 +1,4 @@
-package com.shmrkm.chatworkWebhook.mention.protocol.read
+package com.shmrkm.chatworkWebhook.mention.protocol.query
 
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
 

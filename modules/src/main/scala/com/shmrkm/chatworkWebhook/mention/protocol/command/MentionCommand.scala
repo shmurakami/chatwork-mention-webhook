@@ -1,8 +1,8 @@
-package com.shmrkm.chatworkWebhook.mention.protocol.write
+package com.shmrkm.chatworkWebhook.mention.protocol.command
 
-import com.shmrkm.chatworkWebhook.domain.model.account.{AccountId}
+import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
 import com.shmrkm.chatworkWebhook.domain.model.message._
-import com.shmrkm.chatworkWebhook.domain.model.room._
+import com.shmrkm.chatworkWebhook.domain.model.room.RoomId
 
 case class MentionCommand(
     fromAccountId: AccountId,
