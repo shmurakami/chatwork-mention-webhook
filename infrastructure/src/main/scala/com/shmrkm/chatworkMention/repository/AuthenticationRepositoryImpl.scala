@@ -7,6 +7,7 @@ import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
 import com.shmrkm.chatworkWebhook.domain.model.auth.{AccessToken, Authentication}
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 class AuthenticationRepositoryImpl(redisClient: RedisClient)(implicit ex: ExecutionContext)
     extends AuthenticationRepository {
@@ -28,11 +29,11 @@ class AuthenticationRepositoryImpl(redisClient: RedisClient)(implicit ex: Execut
     }
   }
 
-  override def issueAccessToken(authentication: Authentication): Future[AccessToken] = {
+  override def issueAccessToken(authentication: Authentication): Future[Try[AccessToken]] = {
     Future {
       val accessToken = authKey(authentication.accountId)
-      if (redisClient.set(accessToken.value, authentication.asJson.toString)) accessToken
-      else throw new StoreException("failed to store auth info")
+      if (redisClient.set(accessToken.value, authentication.asJson.toString)) Success(accessToken)
+      else Failure(new StoreException("failed to store auth info"))
     }
   }
 

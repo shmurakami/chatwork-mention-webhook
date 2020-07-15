@@ -5,13 +5,14 @@ import com.shmrkm.chatworkWebhook.domain.model.auth.{AccessToken, Authentication
 import com.shmrkm.chatworkWebhook.mention.protocol.command.AuthenticationCommand
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 class AuthenticationUseCase(
     chatworkApiRepository: ChatworkApiRepository,
     authenticationRepository: AuthenticationRepository
 )(implicit ec: ExecutionContext) {
 
-  def execute(request: AuthenticationCommand): Future[AccessToken] = {
+  def execute(request: AuthenticationCommand): Future[Try[AccessToken]] = {
     chatworkApiRepository
       .me(request.token)
       .filter(_.accountId == request.account_id)

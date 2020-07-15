@@ -15,6 +15,8 @@ import com.shmrkm.chatworkWebhook.mention.protocol.command.{
   AuthenticationCommand,
   AuthenticationRequest,
   AuthenticationResponse,
+  FailureAuthenticationResponse,
+  SuccessAuthenticationResponse,
   UnauthenticatedResponse
 }
 import com.typesafe.scalalogging.Logger
@@ -61,8 +63,9 @@ class AuthenticationController(implicit val system: ActorSystem)
 
   def execute(request: AuthenticationCommand): Future[AuthenticationResponse] = {
     val useCase = new AuthenticationUseCase(chatworkApiRepository, authenticationRepository)
-    useCase.execute(request).map { accessToken =>
-      AuthenticationResponse(account_id = request.account_id, token = accessToken)
+    useCase.execute(request).map {
+      case Success(accessToken)   => SuccessAuthenticationResponse(account_id = request.account_id, token = accessToken)
+      case Failure(ex: Throwable) => FailureAuthenticationResponse(ex.getMessage)
     }
   }
 }
