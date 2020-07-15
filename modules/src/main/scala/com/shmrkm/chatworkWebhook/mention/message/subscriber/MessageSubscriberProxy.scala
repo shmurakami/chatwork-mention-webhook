@@ -33,6 +33,7 @@ class MessageSubscriberProxy extends Actor with ActorLogging with MentionStreamR
   override def receive: Receive = {
     case _: Start => subscriberRepository.subscribe(subscriber)
 
+    // TODO command should not forward to subscriber. subscriber should do subscribe. message consuming is another actor
     case cmd: Command => context.child(MessageSubscriber.name).fold(createAndForward(cmd))(forwardCmd(cmd))
   }
 

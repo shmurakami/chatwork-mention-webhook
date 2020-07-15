@@ -1,18 +1,31 @@
 package com.shmrkm.chatworkWebhook.mention.controller
 
 import akka.actor.ActorSystem
-import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
+import akka.http.scaladsl.model.{ HttpResponse, StatusCodes }
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, AuthenticationRepositoryFactory, ChatworkApiClientFactory, ChatworkApiRepository}
+import com.shmrkm.chatworkMention.repository.{
+  AuthenticationRepository,
+  AuthenticationRepositoryFactory,
+  ChatworkApiClientFactory,
+  ChatworkApiRepository
+}
 import com.shmrkm.chatworkWebhook.auth.usecase.AuthenticationUseCase
-import com.shmrkm.chatworkWebhook.mention.protocol.command.{AuthenticationCommand, AuthenticationRequest, AuthenticationResponse, UnauthenticatedResponse}
+import com.shmrkm.chatworkWebhook.mention.protocol.command.{
+  AuthenticationCommand,
+  AuthenticationRequest,
+  AuthenticationResponse,
+  UnauthenticatedResponse
+}
 import com.typesafe.scalalogging.Logger
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success }
 
-class AuthenticationController(implicit val system: ActorSystem) extends Controller with AuthenticationRepositoryFactory with ChatworkApiClientFactory {
+class AuthenticationController(implicit val system: ActorSystem)
+    extends Controller
+    with AuthenticationRepositoryFactory
+    with ChatworkApiClientFactory {
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
   import io.circe.generic.auto._
   import io.circe.syntax._
@@ -47,7 +60,7 @@ class AuthenticationController(implicit val system: ActorSystem) extends Control
     }
 
   def execute(request: AuthenticationCommand): Future[AuthenticationResponse] = {
-    val useCase               = new AuthenticationUseCase(chatworkApiRepository, authenticationRepository)
+    val useCase = new AuthenticationUseCase(chatworkApiRepository, authenticationRepository)
     useCase.execute(request).map { accessToken =>
       AuthenticationResponse(account_id = request.account_id, token = accessToken)
     }

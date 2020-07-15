@@ -13,7 +13,7 @@ class AuthenticationUseCase(
 
   def execute(request: AuthenticationCommand): Future[AccessToken] = {
     chatworkApiRepository
-      .me()
+      .me(request.token)
       .filter(_.accountId == request.account_id)
       .flatMap { _ => authenticationRepository.issueAccessToken(Authentication(request.account_id, request.token)) }
   }

@@ -4,7 +4,8 @@ import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.stream.Materializer
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import akka.{Done, NotUsed}
-import com.shmrkm.chatworkMention.repository.{ChatworkApiClientFactory, ChatworkApiRepository, MentionRepositoryFactory, MentionStreamRepositoryFactory}
+import com.shmrkm.chatworkMention.repository.{AuthenticationRepositoryFactory, ChatworkApiClientFactory, ChatworkApiRepository, MentionRepositoryFactory, MentionStreamRepositoryFactory}
+import com.shmrkm.chatworkWebhook.domain.model.chatwork.ApiToken
 import com.shmrkm.chatworkWebhook.domain.model.message.Message
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
 import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriberProxy.{ConsumeError, ConsumedMessage}
@@ -18,7 +19,13 @@ object MessageSubscriber {
   def name  = "message-subscriber"
 }
 
-class MessageSubscriber extends Actor with ActorLogging with MentionStreamRepositoryFactory with MentionRepositoryFactory with ChatworkApiClientFactory {
+class MessageSubscriber
+    extends Actor
+    with ActorLogging
+    with MentionStreamRepositoryFactory
+    with MentionRepositoryFactory
+    with AuthenticationRepositoryFactory
+    with ChatworkApiClientFactory {
   import io.circe.generic.auto._
   import io.circe.parser._
 
@@ -26,6 +33,8 @@ class MessageSubscriber extends Actor with ActorLogging with MentionStreamReposi
   implicit val config: Config       = context.system.settings.config
 
   implicit val mat: Materializer = Materializer(context)
+
+  private val authRepository = factoryAuthenticationRepository()
 
   // subscribe requires connection for only subscribing
   private val mentionRepository = factoryMentionRepository()
@@ -52,35 +61,41 @@ class MessageSubscriber extends Actor with ActorLogging with MentionStreamReposi
       .run()
   }
 
-  def retrieveInsufficientDataAndBuildMessage(): Flow[Message, QueryMessage, NotUsed] = {
+  def retrieveInsufficientDataAndBuildMessage: Flow[Message, QueryMessage, NotUsed] = {
     Flow[Message]
       .mapAsync(1) { message =>
-        (for {
-          room        <- chatworkApiRepository.retrieveRoom(message.roomId)
-          fromAccount <- chatworkApiRepository.retrieveAccount(message.roomId, message.fromAccountId)
-        } yield Tuple2(room, fromAccount))
-          .map { values =>
-            val room    = values._1
-            val account = values._2
+        authRepository.authenticationForAccountId(message.toAccountId)
+          .flatMap {
+            case None => throw new RuntimeException("")
+            case Some(authentication) =>
+              implicit val token: ApiToken = authentication.apiToken
+              (for {
+                room <- chatworkApiRepository.retrieveRoom(message.roomId)
+                fromAccount <- chatworkApiRepository.retrieveAccount(message.roomId, message.fromAccountId)
+              } yield Tuple2(room, fromAccount))
+                .map { values =>
+                  val room = values._1
+                  val account = values._2
 
-            QueryMessage(
-              id = message.id,
-              roomId = message.roomId,
-              roomName = room.name,
-              roomIconUrl = room.iconUrl,
-              fromAccountId = message.fromAccountId,
-              fromAccountName = account.name,
-              fromAccountAvatarUrl = account.avatar,
-              toAccountId = message.toAccountId,
-              body = message.body,
-              sendTime = message.sendTime,
-              updateTime = message.updateTime
-            )
+                  QueryMessage(
+                    id = message.id,
+                    roomId = message.roomId,
+                    roomName = room.name,
+                    roomIconUrl = room.iconUrl,
+                    fromAccountId = message.fromAccountId,
+                    fromAccountName = account.name,
+                    fromAccountAvatarUrl = account.avatar,
+                    toAccountId = message.toAccountId,
+                    body = message.body,
+                    sendTime = message.sendTime,
+                    updateTime = message.updateTime
+                  )
+                }
           }
       }
   }
 
-  def updateReadModel(): Flow[QueryMessage, Try[Done], NotUsed] = {
+  def updateReadModel: Flow[QueryMessage, Try[Done], NotUsed] = {
     Flow[QueryMessage]
       .mapAsync(1) { message =>
         for {

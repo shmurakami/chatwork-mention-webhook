@@ -40,4 +40,8 @@ class AuthenticationRepositoryImpl(redisClient: RedisClient)(implicit ex: Execut
     val tokenGenerator = new TokenGenerator
     AccessToken(tokenGenerator.generateSHAToken(s"authentication-${accountId.value}"))
   }
+
+  override def authenticationForAccountId(accountId: AccountId): Future[Option[Authentication]] = {
+    resolve(authKey(accountId))
+  }
 }

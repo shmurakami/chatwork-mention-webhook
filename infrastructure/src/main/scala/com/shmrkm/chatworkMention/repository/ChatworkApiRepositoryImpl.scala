@@ -16,7 +16,7 @@ import io.circe.generic.auto._
 import scala.collection.immutable
 import scala.concurrent.{ExecutionContext, Future}
 
-class ChatworkApiRepositoryImpl(url: String, token: ApiToken)(
+class ChatworkApiRepositoryImpl(url: String)(
     implicit system: ActorSystem,
     implicit val ec: ExecutionContext
 ) extends ChatworkApiRepository {
@@ -24,19 +24,19 @@ class ChatworkApiRepositoryImpl(url: String, token: ApiToken)(
   val logger = Logger(classOf[ChatworkApiRepository])
 
   // TODO error handling
-  def retrieveRoom(roomId: RoomId): Future[Room] = {
+  def retrieveRoom(roomId: RoomId)(implicit apiToken: ApiToken): Future[Room] = {
     val roomUrl = s"${url}/rooms/${roomId.value}"
     Http()
-      .singleRequest(request(roomUrl))
+      .singleRequest(request(roomUrl, apiToken))
       .flatMap(Unmarshal(_).to[RoomResponse])
       .map(response => Room(roomId, RoomName(response.name), RoomIconUrl(response.icon_path)))
   }
 
   // TODO error handling
-  def retrieveAccount(roomId: RoomId, fromAccountId: AccountId): Future[FromAccount] = {
+  def retrieveAccount(roomId: RoomId, fromAccountId: AccountId)(implicit apiToken: ApiToken): Future[FromAccount] = {
     val memberUrl = s"${url}/rooms/${roomId.value}/members"
     Http()
-      .singleRequest(request(memberUrl))
+      .singleRequest(request(memberUrl, apiToken))
       .flatMap(Unmarshal(_).to[List[MemberResponseItem]])
       .map(MemberResponse(_))
       .map(response =>
@@ -47,18 +47,18 @@ class ChatworkApiRepositoryImpl(url: String, token: ApiToken)(
       )
   }
 
-  private def request(url: String): HttpRequest = HttpRequest(
+  private def request(url: String, apiToken: ApiToken): HttpRequest = HttpRequest(
     HttpMethods.GET,
     Uri(url),
     immutable.Seq(
-      RawHeader("X-ChatworkToken", token.value)
+      RawHeader("X-ChatworkToken", apiToken.value)
     )
   )
 
-  override def resolveAccount(accountId: AccountId): Future[MeResponse] = {
+  override def resolveAccount(accountId: AccountId)(implicit apiToken: ApiToken): Future[MeResponse] = {
     val meUrl = s"${url}/me"
     Http()
-      .singleRequest(request(meUrl))
+      .singleRequest(request(meUrl, apiToken))
       .flatMap(Unmarshal(_).to[MeResponse])
       .map(response => {
         if (response.account_id == accountId.value) response
@@ -74,10 +74,10 @@ class ChatworkApiRepositoryImpl(url: String, token: ApiToken)(
       }
   }
 
-  override def me(): Future[Me] = {
+  override def me(implicit apiToken: ApiToken): Future[Me] = {
     val meUrl = s"${url}/me"
     Http()
-      .singleRequest(request(meUrl))
+      .singleRequest(request(meUrl, apiToken))
       .flatMap(Unmarshal(_).to[MeResponse])
       .map { meResponse => Me(accountId = AccountId(meResponse.account_id), name = AccountName(meResponse.name)) }
   }
