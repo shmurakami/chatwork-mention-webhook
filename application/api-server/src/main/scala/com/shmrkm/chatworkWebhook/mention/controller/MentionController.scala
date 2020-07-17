@@ -2,11 +2,16 @@ package com.shmrkm.chatworkWebhook.mention.controller
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.AuthenticationFailedRejection.CredentialsRejected
+import akka.http.scaladsl.server.AuthenticationFailedRejection.{ CredentialsMissing, CredentialsRejected }
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{AuthenticationFailedRejection, Route}
-import com.shmrkm.chatworkMention.exception.{InvalidAccountIdException, RequestFailureException}
-import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, AuthenticationRepositoryFactory, MentionRepository, MentionRepositoryFactory}
+import akka.http.scaladsl.server.{ AuthenticationFailedRejection, Route }
+import com.shmrkm.chatworkMention.exception.{ InvalidAccountIdException, KeyNotFoundException, RequestFailureException }
+import com.shmrkm.chatworkMention.repository.{
+  AuthenticationRepository,
+  AuthenticationRepositoryFactory,
+  MentionRepository,
+  MentionRepositoryFactory
+}
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
 import com.shmrkm.chatworkWebhook.domain.model.auth.AccessToken
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
@@ -15,10 +20,13 @@ import com.shmrkm.chatworkWebhook.mention.protocol.query.MentionErrorResponse.In
 import com.shmrkm.chatworkWebhook.mention.protocol.query.MentionQuery
 import com.typesafe.scalalogging.Logger
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success }
 
-class MentionController(implicit system: ActorSystem) extends Controller with AuthenticationRepositoryFactory with MentionRepositoryFactory {
+class MentionController(implicit system: ActorSystem)
+    extends Controller
+    with AuthenticationRepositoryFactory
+    with MentionRepositoryFactory {
 
   override implicit def ec: ExecutionContext = system.dispatcher
 
@@ -61,14 +69,15 @@ class MentionController(implicit system: ActorSystem) extends Controller with Au
                 complete("unexpected error occurred")
               case Success(maybeAuthentication) =>
                 maybeAuthentication match {
-                  case Some(authentication) if authentication.accountId.value == accountId => {
+                  case Right(authentication) if authentication.accountId.value == accountId => {
                     onSuccess(execute(query.MentionQuery(AccountId(accountId)))) {
                       // Either? Try?
                       case Right(mentionList) => complete(mentionList)
-                      case Left(_) => complete(StatusCodes.BadRequest, InvalidRequest())
+                      case Left(_)            => complete(StatusCodes.BadRequest, InvalidRequest())
                     }
                   }
-                  case None => reject(AuthenticationFailedRejection(CredentialsRejected, null))
+                  case Left(ex: KeyNotFoundException) => reject(AuthenticationFailedRejection(CredentialsMissing, null))
+                  case _                              => reject(AuthenticationFailedRejection(CredentialsRejected, null))
                 }
             }
           }
@@ -79,7 +88,8 @@ class MentionController(implicit system: ActorSystem) extends Controller with Au
   def execute(query: MentionQuery): Future[Either[String, MentionList]] = {
     // seems Either Left should be any type
 
-    mentionRepository.resolve(query.accountId)
+    mentionRepository
+      .resolve(query.accountId)
       .map(Right(_))
       .recover {
         case e: InvalidAccountIdException =>
