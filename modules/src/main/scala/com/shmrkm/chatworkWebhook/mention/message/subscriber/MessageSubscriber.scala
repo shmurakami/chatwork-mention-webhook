@@ -52,6 +52,7 @@ class MessageSubscriber
   }
 
   def consumeFlow(message: ConsumedMessage): Future[Try[Done]] = {
+    // TODO set supervision strategy decider
     Source
       .single(message)
       .map { message => decode[Message](message.value).getOrElse(null) }

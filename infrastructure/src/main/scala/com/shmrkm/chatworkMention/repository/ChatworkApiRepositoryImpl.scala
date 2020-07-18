@@ -5,16 +5,17 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.unmarshalling.Unmarshal
-import com.shmrkm.chatworkMention.exception.{InvalidAccountIdException, RequestFailureException}
+import com.shmrkm.chatworkMention.exception.chatworkApi.{ ResponseException, UnexpectedException }
+import com.shmrkm.chatworkMention.exception.{ InvalidAccountIdException, RequestFailureException }
 import com.shmrkm.chatworkWebhook.domain.model.account._
-import com.shmrkm.chatworkWebhook.domain.model.chatwork.{ApiToken, Me}
-import com.shmrkm.chatworkWebhook.domain.model.room.{Room, RoomIconUrl, RoomId, RoomName}
+import com.shmrkm.chatworkWebhook.domain.model.chatwork.{ ApiToken, Me }
+import com.shmrkm.chatworkWebhook.domain.model.room.{ Room, RoomIconUrl, RoomId, RoomName }
 import com.typesafe.scalalogging.Logger
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 import io.circe.generic.auto._
 
 import scala.collection.immutable
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 class ChatworkApiRepositoryImpl(url: String)(
     implicit system: ActorSystem,
@@ -23,26 +24,34 @@ class ChatworkApiRepositoryImpl(url: String)(
 
   val logger = Logger(classOf[ChatworkApiRepository])
 
-  // TODO error handling
   def retrieveRoom(roomId: RoomId)(implicit apiToken: ApiToken): Future[Room] = {
     val roomUrl = s"${url}/rooms/${roomId.value}"
     Http()
       .singleRequest(request(roomUrl, apiToken))
-      .flatMap(Unmarshal(_).to[RoomResponse])
+      .flatMap {
+        case HttpResponse(_: StatusCodes.Success, _, entity, _) => Unmarshal(entity).to[RoomResponse]
+        case HttpResponse(_: StatusCodes.ServerError, _, _, _)  => throw ResponseException("")
+        case _                                                  => throw UnexpectedException() // it should handle response body
+      }
       .map(response => Room(roomId, RoomName(response.name), RoomIconUrl(response.icon_path)))
   }
 
-  // TODO error handling
   def retrieveAccount(roomId: RoomId, fromAccountId: AccountId)(implicit apiToken: ApiToken): Future[FromAccount] = {
     val memberUrl = s"${url}/rooms/${roomId.value}/members"
     Http()
       .singleRequest(request(memberUrl, apiToken))
-      .flatMap(Unmarshal(_).to[List[MemberResponseItem]])
+      .flatMap {
+        case HttpResponse(_: StatusCodes.Success, _, entity, _) => Unmarshal(entity).to[List[MemberResponseItem]]
+        case HttpResponse(_: StatusCodes.ServerError, _, _, _)  => throw ResponseException("")
+        case _                                                  => throw UnexpectedException() // it should handle response body
+      }
       .map(MemberResponse(_))
       .map(response =>
         response
           .filterBy(fromAccountId)
-          .map(response => FromAccount(fromAccountId, AccountName(response.name), FromAccountAvatarUrl(response.avatar_image_url)))
+          .map(response =>
+            FromAccount(fromAccountId, AccountName(response.name), FromAccountAvatarUrl(response.avatar_image_url))
+          )
           .head
       )
   }
