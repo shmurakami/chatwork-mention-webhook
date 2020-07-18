@@ -37,7 +37,7 @@ class AuthenticationRepositoryImpl(redisClient: RedisClient)(implicit ex: Execut
     AccessToken(tokenGenerator.generateSHAToken(s"authentication-${accountId.value}"))
   }
 
-  override def authenticationForAccountId(accountId: AccountId): Future[Option[Authentication]] = {
+  override def authenticationForAccountId(accountId: AccountId): Future[Either[Throwable, Authentication]] = {
     resolve(authKey(accountId))
   }
 }

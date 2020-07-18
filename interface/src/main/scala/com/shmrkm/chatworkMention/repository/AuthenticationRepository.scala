@@ -12,6 +12,6 @@ trait AuthenticationRepository {
 
   def issueAccessToken(authentication: Authentication): Future[Try[AccessToken]]
 
-  def authenticationForAccountId(toAccountId: AccountId): Future[Option[Authentication]]
+  def authenticationForAccountId(toAccountId: AccountId): Future[Either[Throwable, Authentication]]
 
 }

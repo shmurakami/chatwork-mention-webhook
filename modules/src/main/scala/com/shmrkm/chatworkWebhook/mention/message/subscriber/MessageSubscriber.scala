@@ -66,8 +66,8 @@ class MessageSubscriber
       .mapAsync(1) { message =>
         authRepository.authenticationForAccountId(message.toAccountId)
           .flatMap {
-            case None => throw new RuntimeException("")
-            case Some(authentication) =>
+            case Left(_) => throw new RuntimeException("")
+            case Right(authentication) =>
               implicit val token: ApiToken = authentication.apiToken
               (for {
                 room <- chatworkApiRepository.retrieveRoom(message.roomId)
