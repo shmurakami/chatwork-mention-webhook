@@ -49,19 +49,24 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
   private def resolveStreamChannelName(): String = config.getString("redis.channel-name")
 
   override def resolve(accountId: AccountId): Future[MentionList] = Future {
+    val default = MentionList(Seq.empty)
     redisClient.get(readModelKey(accountId)) match {
       case Some(mention) =>
-        // TODO left
-        parse(mention).right.flatMap(_.as[MentionList]) match {
-          case Right(mentionList) => mentionList
-          case Left(_) =>
-            logger.info(s"empty mention list for account: ${accountId.value}")
-            MentionList(Seq.empty)
+        parse(mention) match {
+          case Left(error) =>
+            logger.warn(s"Parsing json error. Invalid format json stored $error")
+            default
+          case Right(json) => json.as[MentionList] match {
+            case Left(error) =>
+              logger.warn(s"Decoding json failure $error")
+              default
+            case Right(mentionList) => mentionList
+          }
         }
 
       case None =>
         logger.info(s"mention is empty for account $accountId")
-        MentionList(Seq.empty)
+        default
     }
   }
 
