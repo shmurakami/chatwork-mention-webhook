@@ -2,17 +2,18 @@ package com.shmrkm.chatworkWebhook.mention.message.subscriber
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.stream.Materializer
-import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
+import akka.stream.scaladsl.{Flow, Keep, RestartSource, Sink, Source}
 import akka.{Done, NotUsed}
-import com.shmrkm.chatworkMention.repository.{AuthenticationRepositoryFactory, ChatworkApiClientFactory, ChatworkApiRepository, MentionRepositoryFactory, MentionStreamRepositoryFactory}
+import com.shmrkm.chatworkMention.repository._
 import com.shmrkm.chatworkWebhook.domain.model.chatwork.ApiToken
 import com.shmrkm.chatworkWebhook.domain.model.message.Message
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
 import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriberProxy.{ConsumeError, ConsumedMessage}
 import com.typesafe.config.Config
 
+import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Try}
+import scala.util.Try
 
 object MessageSubscriber {
   def props = Props(new MessageSubscriber)
@@ -52,9 +53,12 @@ class MessageSubscriber
   }
 
   def consumeFlow(message: ConsumedMessage): Future[Try[Done]] = {
-    // TODO set supervision strategy decider
-    Source
-      .single(message)
+    val source =
+      RestartSource.withBackoff(minBackoff = 3 seconds, maxBackoff = 10 seconds, randomFactor = 0.2, maxRestarts = 3)(
+        () => Source.single(message)
+      )
+
+    source
       .map { message => decode[Message](message.value).getOrElse(null) }
       .via(retrieveInsufficientDataAndBuildMessage)
       .via(updateReadModel)
@@ -65,17 +69,18 @@ class MessageSubscriber
   def retrieveInsufficientDataAndBuildMessage: Flow[Message, QueryMessage, NotUsed] = {
     Flow[Message]
       .mapAsync(1) { message =>
-        authRepository.authenticationForAccountId(message.toAccountId)
+        authRepository
+          .authenticationForAccountId(message.toAccountId)
           .flatMap {
             case Left(_) => throw new RuntimeException("")
             case Right(authentication) =>
               implicit val token: ApiToken = authentication.apiToken
               (for {
-                room <- chatworkApiRepository.retrieveRoom(message.roomId)
+                room        <- chatworkApiRepository.retrieveRoom(message.roomId)
                 fromAccount <- chatworkApiRepository.retrieveAccount(message.roomId, message.fromAccountId)
               } yield Tuple2(room, fromAccount))
                 .map { values =>
-                  val room = values._1
+                  val room    = values._1
                   val account = values._2
 
                   QueryMessage(
@@ -106,12 +111,6 @@ class MessageSubscriber
           }
           result <- mentionRepository.updateReadModel(message.toAccountId, updatedMentions)
         } yield result
-          .recoverWith {
-            case exception =>
-              log.error(s"failure to update read model. should retry")
-              Failure(exception)
-            // then what's happened?
-          }
       }
   }
 }
