@@ -35,7 +35,7 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
 
   override def publish(message: Message): Future[Try[Boolean]] = Future {
     val channelName = resolveStreamChannelName()
-    redisClient.publish(channelName, message.asJson.toString) match {
+    redisClient.publish(channelName, message.asJson.noSpaces) match {
       case Some(_) => logger.info(s"succeeded to publish to channel $channelName"); Success(true)
       case None => logger.warn("failed to publish"); Failure(new StoreException("failed to publish to redis"))
     }
@@ -72,7 +72,7 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
 
   override def updateReadModel(toAccountId: AccountId, mentionList: MentionList): Future[Try[Done]] = {
     Future {
-      if (redisClient.set(readModelKey(toAccountId), mentionList.asJson.toString)) Success(Done)
+      if (redisClient.set(readModelKey(toAccountId), mentionList.asJson.noSpaces)) Success(Done)
       else Failure(new StoreException("failed to update read model"))
     }
   }

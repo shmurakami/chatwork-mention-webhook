@@ -36,7 +36,7 @@ class AuthenticationRepositoryImpl(redisClient: RedisClient)(implicit ex: Execut
   override def issueAccessToken(authentication: Authentication): Future[Try[AccessToken]] = {
     Future {
       val accessToken = authKey(authentication.accountId)
-      if (redisClient.set(accessToken.value, authentication.asJson.toString)) Success(accessToken)
+      if (redisClient.set(accessToken.value, authentication.asJson.noSpaces)) Success(accessToken)
       else Failure(new StoreException("failed to store auth info"))
     }
   }

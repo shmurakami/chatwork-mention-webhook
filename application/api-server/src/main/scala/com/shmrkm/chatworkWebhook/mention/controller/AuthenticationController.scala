@@ -52,7 +52,7 @@ class AuthenticationController(implicit val system: ActorSystem)
               logger.warn(ex.toString)
               complete(
                 HttpResponse(
-                  entity = UnauthenticatedResponse().asJson.toString,
+                  entity = UnauthenticatedResponse().asJson.noSpaces,
                   status = StatusCodes.BadRequest
                 )
               )
