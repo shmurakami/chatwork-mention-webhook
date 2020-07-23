@@ -2,10 +2,9 @@ package com.shmrkm.chatworkWebhook.mention.controller
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
-import akka.http.scaladsl.server.AuthenticationFailedRejection.{ CredentialsMissing, CredentialsRejected }
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.{ AuthenticationFailedRejection, Route }
-import com.shmrkm.chatworkMention.exception.{ InvalidAccountIdException, KeyNotFoundException, RequestFailureException }
+import akka.http.scaladsl.server.Route
+import com.shmrkm.chatworkMention.exception.{ InvalidAccountIdException, RequestFailureException }
 import com.shmrkm.chatworkMention.repository.{
   AuthenticationRepository,
   AuthenticationRepositoryFactory,
@@ -13,7 +12,7 @@ import com.shmrkm.chatworkMention.repository.{
   MentionRepositoryFactory
 }
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
-import com.shmrkm.chatworkWebhook.domain.model.auth.AccessToken
+import com.shmrkm.chatworkWebhook.domain.model.auth.{ AccessToken, Authentication }
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
 import com.shmrkm.chatworkWebhook.mention.protocol.query
 import com.shmrkm.chatworkWebhook.mention.protocol.query.MentionErrorResponse.InvalidRequest
@@ -33,51 +32,31 @@ class MentionController(implicit system: ActorSystem)
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
   import io.circe.generic.auto._
 
-  val mentionRepository: MentionRepository = factoryMentionRepository()
+  private val mentionRepository: MentionRepository     = factoryMentionRepository()
+  private val authRepository: AuthenticationRepository = factoryAuthenticationRepository()
+  private val logger                                   = Logger(classOf[MentionController])
 
-  val authRepository: AuthenticationRepository = factoryAuthenticationRepository()
-
-  val logger = Logger(classOf[MentionController])
-
-  //  implicit def rejectionHandler =
-//    RejectionHandler
-//      .newBuilder()
-//      .handle {
-//        case AuthenticationFailedRejection(cause, challenge) =>
-//          complete((StatusCodes.Unauthorized, "Invalid Request"))
-//      }
-//      .result()
-
-//  def verifyAccessToken(accountId: AccountId): Directive1[ApiToken] = {
-//    headerValueByName("X-Token") { token =>
-//      authRepository.resolve(AccessToken(token)) match {
-//        case Some(authentication) if (authentication.accountId == accountId) => extract()
-//        case None                                                            => reject(AuthenticationFailedRejection(CredentialsRejected, null))
-//      }
-//    }
-//  }
+  def verifyAccessToken(requestToken: String, accountId: AccountId): Future[Authentication] = {
+    authRepository.resolve(AccessToken(requestToken)).map {
+      case Right(authentication) if authentication.accountId == accountId => authentication
+//      case Left(ex: KeyNotFoundException) => Future.failed(ex)
+//      case _ => ???
+    }
+  }
 
   def route: Route =
     get {
       extractExecutionContext { implicit ec =>
         parameters('account_id.as[Int]) { accountId =>
-          // TODO FIXME validation
           headerValueByName("X-Token") { token =>
-            onComplete(authRepository.resolve(AccessToken(token))) {
+            onComplete(verifyAccessToken(token, AccountId(accountId))) {
               case Failure(ex) =>
                 logger.warn(s"failure to resolve authentication $ex")
                 complete("unexpected error occurred")
-              case Success(maybeAuthentication) =>
-                maybeAuthentication match {
-                  case Right(authentication) if authentication.accountId.value == accountId => {
-                    onSuccess(execute(query.MentionQuery(AccountId(accountId)))) {
-                      // Either? Try?
-                      case Right(mentionList) => complete(mentionList)
-                      case Left(_)            => complete(StatusCodes.BadRequest, InvalidRequest())
-                    }
-                  }
-                  case Left(ex: KeyNotFoundException) => reject(AuthenticationFailedRejection(CredentialsMissing, null))
-                  case _                              => reject(AuthenticationFailedRejection(CredentialsRejected, null))
+              case Success(_) =>
+                onSuccess(execute(query.MentionQuery(AccountId(accountId)))) {
+                  case Right(mentionList) => complete(mentionList)
+                  case Left(_)            => complete(StatusCodes.BadRequest, InvalidRequest())
                 }
             }
           }
