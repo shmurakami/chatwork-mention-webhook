@@ -1,9 +1,9 @@
-package com.shmrkm.chatworkWebhook.mention.message.subscriber
+package com.shmrkm.chatworkWebhook.mention.subscriber
 
 import akka.actor.{ Actor, ActorLogging, ActorRef, Props }
 import com.redis._
 import com.shmrkm.chatworkMention.repository.MentionStreamRepositoryFactory
-import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriberProxy.{
+import MessageSubscriberProxy.{
   Command,
   ConsumeError,
   ConsumedMessage,

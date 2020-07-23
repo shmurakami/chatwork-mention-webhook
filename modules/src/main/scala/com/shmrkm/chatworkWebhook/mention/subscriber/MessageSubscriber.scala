@@ -1,4 +1,4 @@
-package com.shmrkm.chatworkWebhook.mention.message.subscriber
+package com.shmrkm.chatworkWebhook.mention.subscriber
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import akka.stream.Materializer
@@ -8,7 +8,8 @@ import com.shmrkm.chatworkMention.repository._
 import com.shmrkm.chatworkWebhook.domain.model.chatwork.ApiToken
 import com.shmrkm.chatworkWebhook.domain.model.message.Message
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
-import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriberProxy.{ConsumeError, ConsumedMessage}
+import MessageSubscriberProxy.{ConsumeError, ConsumedMessage}
+import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriberProxy.{ConsumeError, ConsumedMessage}
 import com.typesafe.config.Config
 
 import scala.concurrent.duration._

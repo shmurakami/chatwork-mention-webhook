@@ -1,4 +1,4 @@
-package com.shmrkm.chatworkWebhook.mention.message.subscriber;
+package com.shmrkm.chatworkWebhook.mention.subscriber
 
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit}
@@ -6,7 +6,7 @@ import com.shmrkm.chatworkWebhook.concerns.StopSystemAfterAll
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
 import com.shmrkm.chatworkWebhook.domain.model.message._
 import com.shmrkm.chatworkWebhook.domain.model.room.RoomId
-import com.shmrkm.chatworkWebhook.mention.message.subscriber.MessageSubscriberProxy.ConsumedMessage
+import MessageSubscriberProxy.ConsumedMessage
 import com.typesafe.config.ConfigFactory
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
