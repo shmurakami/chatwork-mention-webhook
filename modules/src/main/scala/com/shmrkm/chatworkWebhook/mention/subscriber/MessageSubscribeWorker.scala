@@ -8,7 +8,6 @@ import com.shmrkm.chatworkMention.repository._
 import com.shmrkm.chatworkWebhook.domain.model.chatwork.ApiToken
 import com.shmrkm.chatworkWebhook.domain.model.message.Message
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
-import MessageSubscriberProxy.{ConsumeError, ConsumedMessage}
 import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriberProxy.{ConsumeError, ConsumedMessage}
 import com.typesafe.config.Config
 
@@ -16,12 +15,12 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
-object MessageSubscriber {
-  def props = Props(new MessageSubscriber)
-  def name  = "message-subscriber"
+object MessageSubscribeWorker {
+  def props = Props(new MessageSubscribeWorker)
+  def name  = "message-subscribe-worker"
 }
 
-class MessageSubscriber
+class MessageSubscribeWorker
     extends Actor
     with ActorLogging
     with MentionStreamRepositoryFactory

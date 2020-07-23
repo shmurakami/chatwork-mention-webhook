@@ -53,7 +53,7 @@ class MessageSubscriberSpec
           updateTime = UpdateTime(0)
         ).asJson.toString
 
-        val subscriber = system.actorOf(MessageSubscriber.props, "subscriber")
+        val subscriber = system.actorOf(MessageSubscribeWorker.props, "subscriber")
         subscriber ! ConsumedMessage(messageJsonString)
 
         expectNoMessage(5 seconds)
