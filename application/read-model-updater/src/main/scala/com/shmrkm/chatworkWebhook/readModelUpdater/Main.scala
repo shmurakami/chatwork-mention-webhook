@@ -3,6 +3,7 @@ package com.shmrkm.chatworkWebhook.readModelUpdater
 import akka.Done
 import akka.actor.{ActorSystem, CoordinatedShutdown}
 import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriberProxy
+import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriberProxy.Start
 import com.typesafe.config.ConfigFactory
 
 import scala.concurrent.{ExecutionContext, Future}

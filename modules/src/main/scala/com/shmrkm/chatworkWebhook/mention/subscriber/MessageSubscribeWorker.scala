@@ -8,7 +8,7 @@ import com.shmrkm.chatworkMention.repository._
 import com.shmrkm.chatworkWebhook.domain.model.chatwork.ApiToken
 import com.shmrkm.chatworkWebhook.domain.model.message.Message
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
-import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriberProxy.{ConsumeError, ConsumedMessage}
+import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriber.{ConsumeError, ConsumedMessage}
 import com.typesafe.config.Config
 
 import scala.concurrent.duration._
