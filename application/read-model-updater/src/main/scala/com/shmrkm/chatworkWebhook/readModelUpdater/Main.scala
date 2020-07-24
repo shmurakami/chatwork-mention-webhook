@@ -5,13 +5,15 @@ import akka.actor.{ActorSystem, CoordinatedShutdown}
 import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriberProxy
 import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriberProxy.Start
 import com.typesafe.config.ConfigFactory
+import kamon.Kamon
 
 import scala.concurrent.{ExecutionContext, Future}
 
 object Main extends App {
+  Kamon.init()
 
   override def main(args: Array[String]): Unit = {
-    val config = ConfigFactory.load("read-model-updater")
+    val config = ConfigFactory.load()
 
     implicit val system               = ActorSystem("read-model-updater", config)
     implicit val ec: ExecutionContext = system.dispatcher

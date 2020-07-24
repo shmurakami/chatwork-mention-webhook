@@ -96,8 +96,10 @@ val `read-model-updater` = (project in file("application/read-model-updater"))
   )
 
 val root = (project in file("."))
+//  .enablePlugins(JavaAgent, JavaAgentPackaging)
   .settings(
-    name := "chatwork-mention-webhook"
+    name := "chatwork-mention-webhook",
+//    javaAgents += "io.kamon" % "kanela-agent" % "1.0.6"
   )
   .aggregate(
     `domain`,

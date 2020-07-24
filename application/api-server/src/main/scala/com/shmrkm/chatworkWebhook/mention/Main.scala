@@ -7,11 +7,13 @@ import akka.actor.{ActorSystem, CoordinatedShutdown}
 import akka.http.scaladsl.Http
 import com.shmrkm.chatworkWebhook.mention.controller.{AuthenticationController, MentionController, WebhookController}
 import com.typesafe.config.ConfigFactory
+import kamon.Kamon
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 object Main {
+  Kamon.init()
 
   def main(args: Array[String]): Unit = {
     val config = ConfigFactory.load()
