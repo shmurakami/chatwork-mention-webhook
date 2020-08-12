@@ -1,4 +1,5 @@
 import Settings._
+import DockerSettings._
 import SbtAssembly._
 
 val `domain` = (project in file("domain"))
@@ -54,6 +55,7 @@ val `modules` = (project in file("modules"))
   )
 
 val `api-server` = (project in file("application/api-server"))
+  .enablePlugins(DockerPlugin, JavaAppPackaging)
   .settings(baseSettings)
   .settings(assemblyCommonSettings)
   .settings(
@@ -66,6 +68,14 @@ val `api-server` = (project in file("application/api-server"))
       "io.circe" %% "circe-parser" % circeVersion,
       // https://mvnrepository.com/artifact/de.heikoseeberger/akka-http-circe
       "de.heikoseeberger" %% "akka-http-circe" % akkaCirceVersion,
+    ),
+    // docker
+    packageName in Docker := "shmurakami/chatwork-mention-webhook-api-server",
+    version in Docker := "0.0.1",
+    dockerBaseImage := baseImage,
+    // java options
+    javaOptions in Universal ++= Seq(
+      "-server"
     )
   )
   .dependsOn(
@@ -76,6 +86,7 @@ val `api-server` = (project in file("application/api-server"))
   )
 
 val `read-model-updater` = (project in file("application/read-model-updater"))
+  .enablePlugins(DockerPlugin, JavaAppPackaging)
   .settings(baseSettings)
   .settings(assemblyCommonSettings)
   .settings(
@@ -86,7 +97,11 @@ val `read-model-updater` = (project in file("application/read-model-updater"))
       "io.circe" %% "circe-core" % circeVersion,
       "io.circe" %% "circe-generic" % circeVersion,
       "io.circe" %% "circe-parser" % circeVersion,
-    )
+    ),
+    // docker
+    packageName in Docker := "shmurakami/chatwork-mention-webhook-read-model-updater",
+    version in Docker := "0.0.1",
+    dockerBaseImage := baseImage
   )
   .dependsOn(
     `domain`,
@@ -96,10 +111,8 @@ val `read-model-updater` = (project in file("application/read-model-updater"))
   )
 
 val root = (project in file("."))
-//  .enablePlugins(JavaAgent, JavaAgentPackaging)
   .settings(
     name := "chatwork-mention-webhook",
-//    javaAgents += "io.kamon" % "kanela-agent" % "1.0.6"
   )
   .aggregate(
     `domain`,
