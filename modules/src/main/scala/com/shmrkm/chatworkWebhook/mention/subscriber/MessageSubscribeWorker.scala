@@ -1,32 +1,32 @@
 package com.shmrkm.chatworkWebhook.mention.subscriber
 
-import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
+import akka.actor.{ Actor, ActorLogging, ActorSystem, Props }
 import akka.stream.Materializer
-import akka.stream.scaladsl.{Flow, Keep, RestartSource, Sink, Source}
-import akka.{Done, NotUsed}
+import akka.stream.scaladsl.{ Flow, Keep, RestartSource, Sink, Source }
+import akka.{ Done, NotUsed }
 import com.shmrkm.chatworkMention.repository._
 import com.shmrkm.chatworkWebhook.domain.model.chatwork.ApiToken
 import com.shmrkm.chatworkWebhook.domain.model.message.Message
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
-import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriber.{ConsumeError, ConsumedMessage}
+import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriber.{ ConsumeError, ConsumedMessage }
 import com.typesafe.config.Config
 
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.Try
 
 object MessageSubscribeWorker {
-  def props = Props(new MessageSubscribeWorker)
-  def name  = "message-subscribe-worker"
+
+  def props(authenticationRepository: AuthenticationRepository, mentionRepository: MentionRepository, chatworkApiRepository: ChatworkApiRepository) =
+    Props(new MessageSubscribeWorker(authenticationRepository, mentionRepository, chatworkApiRepository))
+  def name = "message-subscribe-worker"
 }
 
-class MessageSubscribeWorker
+class MessageSubscribeWorker(authRepository: AuthenticationRepository, mentionRepository: MentionRepository, chatworkApiRepository: ChatworkApiRepository)
     extends Actor
     with ActorLogging
     with MentionStreamRepositoryFactory
-    with MentionRepositoryFactory
-    with AuthenticationRepositoryFactory
-    with ChatworkApiClientFactory {
+    {
   import io.circe.generic.auto._
   import io.circe.parser._
 
@@ -35,14 +35,7 @@ class MessageSubscribeWorker
 
   implicit val mat: Materializer = Materializer(context)
 
-  private val authRepository = factoryAuthenticationRepository()
-
-  // subscribe requires connection for only subscribing
-  private val mentionRepository = factoryMentionRepository()
-
   implicit val system: ActorSystem = context.system
-
-  val chatworkApiRepository: ChatworkApiRepository = factoryChatworkApiClient()
 
   override def receive: Receive = {
     case message: ConsumedMessage => consumeFlow(message)
@@ -60,6 +53,7 @@ class MessageSubscribeWorker
 
     source
       .map { message => decode[Message](message.value).getOrElse(null) }
+      .log(message.toString)
       .via(retrieveInsufficientDataAndBuildMessage)
       .via(updateReadModel)
       .toMat(Sink.head)(Keep.right)

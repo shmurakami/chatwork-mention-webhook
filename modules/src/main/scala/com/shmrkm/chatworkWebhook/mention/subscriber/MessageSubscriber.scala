@@ -1,10 +1,10 @@
 package com.shmrkm.chatworkWebhook.mention.subscriber
 
-import akka.actor.{ Actor, ActorLogging, Props }
+import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import com.redis._
-import com.shmrkm.chatworkMention.repository.MentionStreamRepositoryFactory
+import com.shmrkm.chatworkMention.repository.{AuthenticationRepositoryFactory, ChatworkApiClientFactory, ChatworkApiRepository, MentionRepositoryFactory, MentionStreamRepositoryFactory}
 import com.shmrkm.chatworkWebhook.actor.ChildLookup
-import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriber.{ ConsumeError, ConsumedMessage }
+import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriber.{ConsumeError, ConsumedMessage}
 import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriberProxy.Start
 import com.typesafe.config.Config
 
@@ -19,8 +19,17 @@ object MessageSubscriber {
   def name         = "message-subscriber"
 }
 
-class MessageSubscriber extends Actor with ActorLogging with MentionStreamRepositoryFactory with ChildLookup {
+class MessageSubscriber
+    extends Actor
+    with ActorLogging
+    with MentionStreamRepositoryFactory
+    with ChildLookup
+    with AuthenticationRepositoryFactory
+    with MentionRepositoryFactory
+    with ChatworkApiClientFactory {
   override type Command = MessageSubscriber.Command
+
+  override implicit val system: ActorSystem = context.system
 
   implicit val ec: ExecutionContext = context.dispatcher
   implicit val config: Config       = context.system.settings.config
@@ -28,12 +37,16 @@ class MessageSubscriber extends Actor with ActorLogging with MentionStreamReposi
   private val subscriberRepository = factoryStreamRepository()
 
   override def receive: Receive = {
-    case _: Start => subscriberRepository.subscribe(subscriber)
+    case _: Start =>
+      subscriberRepository.subscribe(subscriber)
 
     case cmd: Command =>
       context
         .child(MessageSubscribeWorker.name).fold(
-          createAndForward(MessageSubscribeWorker.props, MessageSubscribeWorker.name)(cmd)
+          createAndForward(
+            MessageSubscribeWorker.props(factoryAuthenticationRepository(), factoryMentionRepository(), factoryChatworkApiClient()),
+            MessageSubscribeWorker.name
+          )(cmd)
         )(forwardCmd(cmd))
   }
 
