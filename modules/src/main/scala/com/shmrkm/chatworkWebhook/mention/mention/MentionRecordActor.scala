@@ -12,6 +12,7 @@ import scala.util.{Failure, Success}
 object MentionRecordActor {
   case class Record(command: Message)
 
+  def name = "mention-record"
   def props(refTo: ActorRef) = Props(new MentionRecordActor(refTo))
 }
 

@@ -53,14 +53,13 @@ class MessageSubscribeWorker(authRepository: AuthenticationRepository, mentionRe
 
     source
       .map { message => decode[Message](message.value).getOrElse(null) }
-      .log(message.toString)
-      .via(retrieveInsufficientDataAndBuildMessage)
-      .via(updateReadModel)
+      .via(retrieveInsufficientDataAndBuildMessage())
+      .via(updateReadModel())
       .toMat(Sink.head)(Keep.right)
       .run()
   }
 
-  def retrieveInsufficientDataAndBuildMessage: Flow[Message, QueryMessage, NotUsed] = {
+  def retrieveInsufficientDataAndBuildMessage(): Flow[Message, QueryMessage, NotUsed] = {
     Flow[Message]
       .mapAsync(1) { message =>
         authRepository
@@ -95,7 +94,7 @@ class MessageSubscribeWorker(authRepository: AuthenticationRepository, mentionRe
       }
   }
 
-  def updateReadModel: Flow[QueryMessage, Try[Done], NotUsed] = {
+  def updateReadModel(): Flow[QueryMessage, Try[Done], NotUsed] = {
     Flow[QueryMessage]
       .mapAsync(1) { message =>
         for {

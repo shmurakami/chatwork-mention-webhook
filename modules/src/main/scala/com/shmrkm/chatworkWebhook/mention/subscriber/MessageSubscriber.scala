@@ -2,7 +2,7 @@ package com.shmrkm.chatworkWebhook.mention.subscriber
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import com.redis._
-import com.shmrkm.chatworkMention.repository.{AuthenticationRepositoryFactory, ChatworkApiClientFactory, ChatworkApiRepository, MentionRepositoryFactory, MentionStreamRepositoryFactory}
+import com.shmrkm.chatworkMention.repository.{AuthenticationRepositoryFactory, ChatworkApiClientFactory, MentionRepositoryFactory, MentionStreamRepositoryFactory}
 import com.shmrkm.chatworkWebhook.actor.ChildLookup
 import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriber.{ConsumeError, ConsumedMessage}
 import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriberProxy.Start

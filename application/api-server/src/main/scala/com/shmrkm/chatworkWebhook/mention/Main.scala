@@ -13,7 +13,7 @@ import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
 object Main {
-  Kamon.init()
+//  Kamon.init()
 
   def main(args: Array[String]): Unit = {
     val config = ConfigFactory.load()

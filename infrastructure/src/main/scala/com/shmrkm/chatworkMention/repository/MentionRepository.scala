@@ -35,10 +35,13 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
 
   override def publish(message: Message): Future[Try[Boolean]] = Future {
     val channelName = resolveStreamChannelName()
-    redisClient.publish(channelName, message.asJson.noSpaces) match {
+    val result = redisClient.publish(channelName, message.asJson.noSpaces) match {
       case Some(_) => logger.info(s"succeeded to publish to channel $channelName"); Success(true)
       case None => logger.warn("failed to publish"); Failure(new StoreException("failed to publish to redis"))
     }
+    // TODO keep connection
+    redisClient.close()
+    result
   }
 
   override def subscribe(consumer: PubSubMessage => Unit): Unit = {

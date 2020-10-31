@@ -52,7 +52,7 @@ class MentionController(implicit system: ActorSystem)
             onComplete(verifyAccessToken(token, AccountId(accountId))) {
               case Failure(ex) =>
                 logger.warn(s"failure to resolve authentication $ex")
-                complete("unexpected error occurred")
+                complete("""{"error": "unexpected error occurred"}""")
               case Success(_) =>
                 onSuccess(execute(query.MentionQuery(AccountId(accountId)))) {
                   case Right(mentionList) => complete(mentionList)
