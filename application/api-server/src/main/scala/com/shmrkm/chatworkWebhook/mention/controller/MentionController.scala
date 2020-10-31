@@ -68,7 +68,7 @@ class MentionController(implicit system: ActorSystem)
     // seems Either Left should be any type
 
     mentionRepository
-      .resolve(query.accountId)
+      .fetch(query.accountId)
       .map(Right(_))
       .recover {
         case e: InvalidAccountIdException =>

@@ -20,8 +20,9 @@ trait StreamRepository {
 
 trait MentionRepository {
   def resolve(accountId: AccountId): Future[MentionList]
+  def fetch(accountId: AccountId): Future[MentionList]
 
-  def updateReadModel(toAccountId: AccountId, mentionList: MentionList): Future[Try[Done]]
+  def updateReadModel(toAccountId: AccountId, mentionList: MentionList): Try[Done]
 }
 
 class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: ExecutionContext) extends StreamRepository with MentionRepository {
@@ -51,8 +52,17 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
 
   private def resolveStreamChannelName(): String = config.getString("redis.channel-name")
 
+  override def fetch(accountId: AccountId): Future[MentionList] = {
+    // TODO how to keep connection? need thread pool?
+    val f = resolve(accountId)
+    redisClient.close()
+    f
+  }
+
   override def resolve(accountId: AccountId): Future[MentionList] = Future {
     val default = MentionList(Seq.empty)
+    val key = readModelKey(accountId)
+
     redisClient.get(readModelKey(accountId)) match {
       case Some(mention) =>
         parse(mention) match {
@@ -73,11 +83,9 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
     }
   }
 
-  override def updateReadModel(toAccountId: AccountId, mentionList: MentionList): Future[Try[Done]] = {
-    Future {
-      if (redisClient.set(readModelKey(toAccountId), mentionList.asJson.noSpaces)) Success(Done)
-      else Failure(new StoreException("failed to update read model"))
-    }
+  override def updateReadModel(toAccountId: AccountId, mentionList: MentionList): Try[Done] = {
+    if (redisClient.set(readModelKey(toAccountId), mentionList.asJson.noSpaces)) Success(Done)
+    else Failure(new StoreException("failed to update read model"))
   }
 
   private def readModelKey(accountId: AccountId): String = {

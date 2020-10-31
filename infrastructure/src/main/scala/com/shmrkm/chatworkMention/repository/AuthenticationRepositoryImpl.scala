@@ -19,6 +19,7 @@ class AuthenticationRepositoryImpl(redisClient: RedisClient)(implicit ex: Execut
   private val logger = Logger(classOf[AuthenticationRepository])
 
   override def resolve(accessToken: AccessToken): Future[Either[Throwable, Authentication]] = {
+    logger.info(s"token = ${accessToken.value}")
     Future {
       redisClient.get(accessToken.value) match {
         case Some(value: String) =>
@@ -35,8 +36,11 @@ class AuthenticationRepositoryImpl(redisClient: RedisClient)(implicit ex: Execut
 
   override def issueAccessToken(authentication: Authentication): Future[Try[AccessToken]] = {
     Future {
-      val accessToken = authKey(authentication.accountId)
-      if (redisClient.set(accessToken.value, authentication.asJson.noSpaces)) Success(accessToken)
+      val accessToken         = authKey(authentication.accountId)
+      val internalAccessToken = internalAuthKey(authentication.accountId)
+      val credentialBody      = authentication.asJson.noSpaces
+      if (redisClient.set(accessToken.value, credentialBody)
+          && redisClient.set(internalAccessToken.value, credentialBody)) Success(accessToken)
       else Failure(new StoreException("failed to store auth info"))
     }
   }
@@ -46,7 +50,14 @@ class AuthenticationRepositoryImpl(redisClient: RedisClient)(implicit ex: Execut
     AccessToken(tokenGenerator.generateSHAToken(s"authentication-${accountId.value}"))
   }
 
+  /**
+    * FIXME ugly. stop using internal auth key
+    */
+  private def internalAuthKey(accountId: AccountId): AccessToken = {
+    AccessToken(s"internal-authentication-${accountId.value}")
+  }
+
   override def authenticationForAccountId(accountId: AccountId): Future[Either[Throwable, Authentication]] = {
-    resolve(authKey(accountId))
+    resolve(internalAuthKey(accountId))
   }
 }
