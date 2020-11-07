@@ -37,8 +37,8 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
   override def publish(message: Message): Future[Try[Boolean]] = Future {
     val channelName = resolveStreamChannelName()
     val result = redisClient.publish(channelName, message.asJson.noSpaces) match {
-      case Some(_) => logger.info(s"succeeded to publish to channel $channelName"); Success(true)
-      case None => logger.warn("failed to publish"); Failure(new StoreException("failed to publish to redis"))
+      case Some(_) => Success(true)
+      case None => Failure(new StoreException("failed to publish to redis"))
     }
     // TODO keep connection
     redisClient.close()
@@ -46,7 +46,6 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
   }
 
   override def subscribe(consumer: PubSubMessage => Unit): Unit = {
-    logger.info("start subscribe")
     redisClient.subscribe(resolveStreamChannelName())(consumer)
   }
 
@@ -61,7 +60,6 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
 
   override def resolve(accountId: AccountId): Future[MentionList] = Future {
     val default = MentionList(Seq.empty)
-    val key = readModelKey(accountId)
 
     redisClient.get(readModelKey(accountId)) match {
       case Some(mention) =>
@@ -77,9 +75,7 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
           }
         }
 
-      case None =>
-        logger.info(s"mention is empty for account $accountId")
-        default
+      case None => default
     }
   }
 

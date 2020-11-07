@@ -91,7 +91,7 @@ class MessageSubscriberSpec
 
         val subscriber =
           system.actorOf(
-            MessageSubscribeWorker.props(authenticationRepository, mentionRepository, chatworkApiRepository),
+            MessageSubscriberWorker.props(authenticationRepository, mentionRepository, chatworkApiRepository),
             "subscriber"
           )
         subscriber ! ConsumedMessage(messageJsonString)

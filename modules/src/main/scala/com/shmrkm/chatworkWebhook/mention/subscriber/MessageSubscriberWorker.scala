@@ -16,18 +16,18 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Try}
 
-object MessageSubscribeWorker {
+object MessageSubscriberWorker {
 
   def props(
       authenticationRepository: AuthenticationRepository,
       mentionRepository: MentionRepository,
       chatworkApiRepository: ChatworkApiRepository
   ) =
-    Props(new MessageSubscribeWorker(authenticationRepository, mentionRepository, chatworkApiRepository))
-  def name = "message-subscribe-worker"
+    Props(new MessageSubscriberWorker(authenticationRepository, mentionRepository, chatworkApiRepository))
+  def name = "message-subscriber-worker"
 }
 
-class MessageSubscribeWorker(
+class MessageSubscriberWorker(
     authRepository: AuthenticationRepository,
     mentionRepository: MentionRepository,
     chatworkApiRepository: ChatworkApiRepository
@@ -119,7 +119,6 @@ class MessageSubscribeWorker(
   def updateReadModel(): Flow[MentionList, Try[Done], NotUsed] = {
     Flow[MentionList]
       .map { mentionList =>
-        log.info(s"update list count: ${mentionList.list.length}")
         mentionRepository.updateReadModel(mentionList.list.head.toAccountId, mentionList)
       }
   }

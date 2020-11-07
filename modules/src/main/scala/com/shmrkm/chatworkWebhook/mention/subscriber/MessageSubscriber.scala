@@ -42,10 +42,10 @@ class MessageSubscriber
 
     case cmd: Command =>
       context
-        .child(MessageSubscribeWorker.name).fold(
+        .child(MessageSubscriberWorker.name).fold(
           createAndForward(
-            MessageSubscribeWorker.props(factoryAuthenticationRepository(), factoryMentionRepository(), factoryChatworkApiClient()),
-            MessageSubscribeWorker.name
+            MessageSubscriberWorker.props(factoryAuthenticationRepository(), factoryMentionRepository(), factoryChatworkApiClient()),
+            MessageSubscriberWorker.name
           )(cmd)
         )(forwardCmd(cmd))
   }
@@ -54,7 +54,6 @@ class MessageSubscriber
     case S(channel: String, _) => log.info(s"redis channel $channel subscribed")
     case U(channel: String, _) => log.info(s"unsubscribed redis channel $channel")
     case M(origChannel: String, message: String) =>
-      log.info(s"message published to channel $origChannel")
       self ! ConsumedMessage(message)
     case E(ex) =>
       log.error(s"subscribing error occurred $ex")
