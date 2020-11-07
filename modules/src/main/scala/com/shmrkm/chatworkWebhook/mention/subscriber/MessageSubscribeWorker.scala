@@ -76,7 +76,8 @@ class MessageSubscribeWorker(
     Flow[Message]
       .mapAsync(1) { message =>
         authRepository
-          .authenticationForAccountId(message.toAccountId)
+          // no need to check request token because this is internal access
+          .resolve(message.toAccountId)
           .flatMap {
             case Left(_) => throw new RuntimeException("failed to resolve authentication")
             case Right(authentication) =>
@@ -108,17 +109,14 @@ class MessageSubscribeWorker(
   }
 
   def appendMessage(): Flow[QueryMessage, MentionList, NotUsed] = {
-    log.info("append")
     Flow[QueryMessage]
       .mapAsync(1) { message =>
-        log.info("append body")
         val mentions = mentionRepository.resolve(message.toAccountId)
         mentions.map { mentionList => mentionList.add(message) }
       }
   }
 
   def updateReadModel(): Flow[MentionList, Try[Done], NotUsed] = {
-    log.info("update")
     Flow[MentionList]
       .map { mentionList =>
         log.info(s"update list count: ${mentionList.list.length}")

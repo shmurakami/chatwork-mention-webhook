@@ -96,6 +96,7 @@ class MessageSubscriberSpec
           )
         subscriber ! ConsumedMessage(messageJsonString)
 
+        // wait to make sure RMU completed
         expectNoMessage(1 seconds)
 
         /**
@@ -110,13 +111,11 @@ class MessageSubscriberSpec
   }
 
   def authenticationRepository(implicit ec: ExecutionContext): AuthenticationRepository = new AuthenticationRepository {
-    override def resolve(accessToken: AccessToken): Future[Either[Throwable, Authentication]] = ???
-    override def issueAccessToken(authentication: Authentication): Future[Try[AccessToken]] = ???
+    override def resolve(accountId: AccountId): Future[Either[Throwable, Authentication]] = Future {
+      Right(Authentication(toAccountId, ApiToken("token"), AccessToken("auth_token")))
+    }
 
-    override def authenticationForAccountId(toAccountId: AccountId): Future[Either[Throwable, Authentication]] =
-      Future {
-        Right(Authentication(toAccountId, ApiToken("token")))
-      }
+    override def issueAccessToken(authentication: Authentication): Future[Try[AccessToken]] = ???
   }
 
   def chatworkApiRepository(implicit ec: ExecutionContext): ChatworkApiRepository = new ChatworkApiRepository {

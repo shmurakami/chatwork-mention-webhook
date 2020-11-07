@@ -21,7 +21,7 @@ object Main extends App {
     val subscriber = system.actorOf(MessageSubscriberProxy.props, MessageSubscriberProxy.name)
     subscriber ! Start()
 
-    CoordinatedShutdown(system).addTask(CoordinatedShutdown.PhaseBeforeServiceUnbind, "shutdown http server") { () =>
+    CoordinatedShutdown(system).addTask(CoordinatedShutdown.PhaseBeforeServiceUnbind, "shutdown RMU") { () =>
       Future {
         system.stop(subscriber)
         Done.done()

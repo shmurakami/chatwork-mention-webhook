@@ -7,7 +7,7 @@ import com.shmrkm.chatworkWebhook.domain.model.auth.AccessToken
 
 class AccessTokenGeneratorImpl extends AccessTokenGenerator {
 
-  override def generate(accountId: AccountId): AccessToken = authKey()
+  override def generate(accountId: AccountId): AccessToken = authKey(accountId)
 
   private def authKey(accountId: AccountId): AccessToken = {
     val tokenGenerator = new TokenGenerator

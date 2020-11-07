@@ -4,23 +4,18 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import com.shmrkm.chatworkMention.exception.{ InvalidAccountIdException, RequestFailureException }
-import com.shmrkm.chatworkMention.repository.{
-  AuthenticationRepository,
-  AuthenticationRepositoryFactory,
-  MentionRepository,
-  MentionRepositoryFactory
-}
+import com.shmrkm.chatworkMention.exception.{InvalidAccountIdException, KeyNotFoundException, RequestFailureException}
+import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, AuthenticationRepositoryFactory, MentionRepository, MentionRepositoryFactory}
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
-import com.shmrkm.chatworkWebhook.domain.model.auth.{ AccessToken, Authentication }
+import com.shmrkm.chatworkWebhook.domain.model.auth.{AccessToken, Authentication}
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
 import com.shmrkm.chatworkWebhook.mention.protocol.query
 import com.shmrkm.chatworkWebhook.mention.protocol.query.MentionErrorResponse.InvalidRequest
 import com.shmrkm.chatworkWebhook.mention.protocol.query.MentionQuery
 import com.typesafe.scalalogging.Logger
 
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success }
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success}
 
 class MentionController(implicit system: ActorSystem)
     extends Controller
@@ -37,10 +32,9 @@ class MentionController(implicit system: ActorSystem)
   private val logger                                   = Logger(classOf[MentionController])
 
   def verifyAccessToken(requestToken: String, accountId: AccountId): Future[Authentication] = {
-    authRepository.resolve(AccessToken(requestToken)).map {
-      case Right(authentication) if authentication.accountId == accountId => authentication
-//      case Left(ex: KeyNotFoundException) => Future.failed(ex)
-//      case _ => ???
+    authRepository.resolve(accountId).map {
+      case Right(authentication) if authentication.accountId == accountId && authentication.accessToken.value == requestToken => authentication
+      case Left(ex: Throwable) => throw ex
     }
   }
 

@@ -8,10 +8,8 @@ import scala.util.Try
 
 trait AuthenticationRepository {
 
-  def resolve(accessToken: AccessToken): Future[Either[Throwable, Authentication]]
+  def resolve(accountId: AccountId): Future[Either[Throwable, Authentication]]
 
   def issueAccessToken(authentication: Authentication): Future[Try[AccessToken]]
-
-  def authenticationForAccountId(toAccountId: AccountId): Future[Either[Throwable, Authentication]]
 
 }

@@ -1,14 +1,13 @@
 package com.shmrkm.chatworkMention.repository
 
 import com.redis.RedisClient
-import com.shmrkm.chatworkMention.exception.{ InvalidValueException, KeyNotFoundException, StoreException }
-import com.shmrkm.chatworkMention.hash.TokenGenerator
+import com.shmrkm.chatworkMention.exception.{InvalidValueException, KeyNotFoundException, StoreException}
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
-import com.shmrkm.chatworkWebhook.domain.model.auth.{ AccessToken, Authentication }
+import com.shmrkm.chatworkWebhook.domain.model.auth.{AccessToken, Authentication}
 import com.typesafe.scalalogging.Logger
 
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success, Try }
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 class AuthenticationRepositoryImpl(redisClient: RedisClient)(implicit ex: ExecutionContext)
     extends AuthenticationRepository {
@@ -18,10 +17,9 @@ class AuthenticationRepositoryImpl(redisClient: RedisClient)(implicit ex: Execut
 
   private val logger = Logger(classOf[AuthenticationRepository])
 
-  override def resolve(accessToken: AccessToken): Future[Either[Throwable, Authentication]] = {
-    logger.info(s"token = ${accessToken.value}")
+  override def resolve(accountId: AccountId): Future[Either[Throwable, Authentication]] = {
     Future {
-      redisClient.get(accessToken.value) match {
+      redisClient.get(authKey(accountId)) match {
         case Some(value: String) =>
           parse(value) match {
             case Left(error) =>
@@ -36,28 +34,10 @@ class AuthenticationRepositoryImpl(redisClient: RedisClient)(implicit ex: Execut
 
   override def issueAccessToken(authentication: Authentication): Future[Try[AccessToken]] = {
     Future {
-      val accessToken         = authKey(authentication.accountId)
-      val internalAccessToken = internalAuthKey(authentication.accountId)
-      val credentialBody      = authentication.asJson.noSpaces
-      if (redisClient.set(accessToken.value, credentialBody)
-          && redisClient.set(internalAccessToken.value, credentialBody)) Success(accessToken)
+      if (redisClient.set(authKey(authentication.accountId), authentication.asJson.noSpaces)) Success(authentication.accessToken)
       else Failure(new StoreException("failed to store auth info"))
     }
   }
 
-  private def authKey(accountId: AccountId): AccessToken = {
-    val tokenGenerator = new TokenGenerator
-    AccessToken(tokenGenerator.generateSHAToken(s"authentication-${accountId.value}"))
-  }
-
-  /**
-    * FIXME ugly. stop using internal auth key
-    */
-  private def internalAuthKey(accountId: AccountId): AccessToken = {
-    AccessToken(s"internal-authentication-${accountId.value}")
-  }
-
-  override def authenticationForAccountId(accountId: AccountId): Future[Either[Throwable, Authentication]] = {
-    resolve(internalAuthKey(accountId))
-  }
+  private def authKey(accountId: AccountId): String = s"authentication-$accountId"
 }
