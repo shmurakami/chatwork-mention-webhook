@@ -6,6 +6,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import com.shmrkm.chatworkMention.exception.{InvalidAccountIdException, KeyNotFoundException, RequestFailureException}
 import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, AuthenticationRepositoryFactory, MentionRepository, MentionRepositoryFactory}
+import com.shmrkm.chatworkWebhook.auth.exception.AuthenticationFailureException
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
 import com.shmrkm.chatworkWebhook.domain.model.auth.{AccessToken, Authentication}
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
@@ -32,9 +33,10 @@ class MentionController(implicit system: ActorSystem)
   private val logger                                   = Logger(classOf[MentionController])
 
   def verifyAccessToken(requestToken: String, accountId: AccountId): Future[Authentication] = {
-    authRepository.resolve(accountId).map {
-      case Right(authentication) if authentication.accountId == accountId && authentication.accessToken.value == requestToken => authentication
-      case Left(ex: Throwable) => throw ex
+    authRepository.resolve(accountId).flatMap {
+      case Right(authentication) if authentication.accountId == accountId && authentication.accessToken.value == requestToken => Future.successful(authentication)
+      case Right(_) => Future.failed(AuthenticationFailureException())
+      case Left(ex: Throwable) => Future.failed(AuthenticationFailureException())
     }
   }
 
@@ -46,7 +48,7 @@ class MentionController(implicit system: ActorSystem)
             onComplete(verifyAccessToken(token, AccountId(accountId))) {
               case Failure(ex) =>
                 logger.warn(s"failure to resolve authentication $ex")
-                complete("""{"error": "unexpected error occurred"}""")
+                complete("""{"error": "unauthorized}""")
               case Success(_) =>
                 onSuccess(execute(query.MentionQuery(AccountId(accountId)))) {
                   case Right(mentionList) => complete(mentionList)
