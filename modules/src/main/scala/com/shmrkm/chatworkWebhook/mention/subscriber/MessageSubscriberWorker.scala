@@ -119,7 +119,8 @@ class MessageSubscriberWorker(
   def updateReadModel(): Flow[MentionList, Try[Done], NotUsed] = {
     Flow[MentionList]
       .map { mentionList =>
-        mentionRepository.updateReadModel(mentionList.list.head.toAccountId, mentionList)
+        // small benefit to show old mentions. set limit as 200
+        mentionRepository.updateReadModel(mentionList.list.head.toAccountId, mentionList.storeList)
       }
   }
 }

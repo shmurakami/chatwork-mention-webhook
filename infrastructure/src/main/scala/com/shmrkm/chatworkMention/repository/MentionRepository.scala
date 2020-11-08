@@ -80,6 +80,7 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
   }
 
   override def updateReadModel(toAccountId: AccountId, mentionList: MentionList): Try[Done] = {
+    // why mention list can be decoded by circe?
     if (redisClient.set(readModelKey(toAccountId), mentionList.asJson.noSpaces)) Success(Done)
     else Failure(new StoreException("failed to update read model"))
   }
