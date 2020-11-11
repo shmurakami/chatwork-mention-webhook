@@ -36,7 +36,7 @@ class AuthenticationController(implicit val system: ActorSystem)
       extractExecutionContext { implicit ec =>
         entity(as[AuthenticationRequest]) { request =>
           onComplete(execute(request.command)) {
-            case Success(response) => complete(response)
+            case Success(response: SuccessAuthenticationResponse) => complete(response)
             case Failure(ex) =>
               logger.warn(ex.toString)
               complete(
