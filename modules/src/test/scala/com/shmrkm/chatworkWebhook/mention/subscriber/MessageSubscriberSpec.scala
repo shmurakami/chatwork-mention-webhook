@@ -136,7 +136,7 @@ class MessageSubscriberSpec
         // save 200 items. and then consume 1 message then returns only 200 items
         mentionRepository.updateReadModel(toAccountId, storeMentionList)
 
-        val subscriber = system.actorOf(MessageSubscriberWorker.props(authenticationRepository, mentionRepository, chatworkApiRepository), "subscriber")
+        val subscriber = system.actorOf(MessageSubscriberWorker.props(authenticationRepository, mentionRepository, chatworkApiRepository), "subscriber_for_up_to")
         subscriber ! ConsumedMessage(messageJsonString)
 
         expectNoMessage(1000 milliseconds)

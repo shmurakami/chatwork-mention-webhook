@@ -12,7 +12,7 @@ import com.shmrkm.chatworkWebhook.domain.model.auth.{AccessToken, Authentication
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
 import com.shmrkm.chatworkWebhook.mention.protocol.query
 import com.shmrkm.chatworkWebhook.mention.protocol.query.MentionErrorResponse.InvalidRequest
-import com.shmrkm.chatworkWebhook.mention.protocol.query.MentionQuery
+import com.shmrkm.chatworkWebhook.mention.protocol.query.{MentionListResponse, MentionQuery}
 import com.typesafe.scalalogging.Logger
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -60,12 +60,12 @@ class MentionController(implicit system: ActorSystem)
       }
     }
 
-  def execute(query: MentionQuery): Future[Either[String, MentionList]] = {
+  def execute(query: MentionQuery): Future[Either[String, MentionListResponse]] = {
     // seems Either Left should be any type
 
     mentionRepository
       .fetch(query.accountId)
-      .map(Right(_))
+      .map(mentionList => Right(MentionListResponse(mentionList)))
       .recover {
         case e: InvalidAccountIdException =>
           logger.warn(e.toString)
