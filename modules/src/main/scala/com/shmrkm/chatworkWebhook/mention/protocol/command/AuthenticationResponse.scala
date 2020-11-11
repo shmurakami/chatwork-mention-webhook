@@ -6,4 +6,16 @@ import com.shmrkm.chatworkWebhook.domain.model.auth.AccessToken
 sealed trait AuthenticationResponse
 
 case class SuccessAuthenticationResponse(account_id: AccountId, token: AccessToken) extends AuthenticationResponse
-case class FailureAuthenticationResponse(reason: String) extends AuthenticationResponse
+case class FailureAuthenticationResponse(reason: String)                            extends AuthenticationResponse
+
+object SuccessAuthenticationResponse {
+  import io.circe.Encoder
+  import io.circe.Json._
+
+  implicit val encoder: Encoder[SuccessAuthenticationResponse] = (response: SuccessAuthenticationResponse) => {
+    obj(
+      "account_id" -> fromLong(response.account_id.value),
+      "token"      -> fromString(response.token.value)
+    )
+  }
+}
