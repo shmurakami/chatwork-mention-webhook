@@ -1,4 +1,5 @@
 import Settings._
+import AkkaSettings._
 import DockerSettings._
 import SbtAssembly._
 
@@ -93,7 +94,7 @@ val `read-model-updater` = (project in file("application/read-model-updater"))
     name := "read-model-updater",
     mainClass in assembly := Some("com.shmrkm.chatworkWebhook.readModelUpdater.Main"),
     libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-stream" % akkaStreamVersion,
+      "com.typesafe.akka" %% "akka-stream" % AkkaSettings.akkaStreamVersion,
       "io.circe" %% "circe-core" % circeVersion,
       "io.circe" %% "circe-generic" % circeVersion,
       "io.circe" %% "circe-parser" % circeVersion,
