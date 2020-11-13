@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option java_package = "com.shmrkm.chatworkWebhook.interface.adaptor";
+
+service AuthenticationService {
+    rpc auth (AuthenticationRequest) returns (AuthenticationReply);
+}
+
+message AuthenticationRequest {
+    uint32 account_id = 1;
+    string token = 2; // chatwork api token
+}
+
+message AuthenticationReply {
+    uint32 account_id = 1;
+    string token = 2; // mention-webhook access token[
+}
+

@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+option java_package = "com.shmrkm.chatworkWebhook.interface.adaptor";
+
+// service
+service MentionService {
+    rpc list (MentionListRequest) returns (MentionListReply);
+    rpc subscribe (MentionSubscribeRequest) returns (stream MentionReply);
+}
+
+message MentionListRequest {
+    uint32 account_id = 1;
+}
+
+message MentionSubscribeRequest {
+    uint32 account_id = 1;
+}
+
+message MentionListReply {
+    repeated MentionReply list = 1;
+}
+
+message MentionReply {
+    string id = 1;
+    uint64 room_id = 2;
+    string room_name = 3;
+    string room_icon_url = 4;
+    uint32 from_account_id = 5;
+    string from_account_name = 6;
+    string from_account_avatar_url = 7;
+    uint32 to_account_id = 8;
+    string body = 9;
+    uint64 send_time = 10;
+    uint64 update_time = 11;
+}

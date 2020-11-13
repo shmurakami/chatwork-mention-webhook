@@ -38,6 +38,7 @@ val `infrastructure` = (project in file("infrastructure"))
   )
 
 val `modules` = (project in file("modules"))
+  .enablePlugins(AkkaGrpcPlugin)
   .settings(baseSettings)
   .settings(
     name := "modules",
