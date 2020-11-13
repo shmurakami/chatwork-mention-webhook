@@ -4,10 +4,11 @@ import java.util.concurrent.TimeUnit
 
 import akka.Done
 import akka.actor.{ActorSystem, CoordinatedShutdown}
-import akka.http.scaladsl.Http
+import akka.grpc.scaladsl.ServiceHandler
+import akka.http.scaladsl.{Http, HttpConnectionContext}
+import com.shmrkm.chatworkWebhook.interface.adaptor.{AuthenticationServiceHandler, AuthenticationServiceImpl, MentionServiceHandler, MentionServiceImpl}
 import com.shmrkm.chatworkWebhook.mention.controller.{AuthenticationController, MentionController, WebhookController}
 import com.typesafe.config.ConfigFactory
-import kamon.Kamon
 
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
@@ -32,11 +33,22 @@ object Main {
     val port          = config.getInt("chatwork-mention-webhook.api-server.port")
     val bindingFuture = Http().bindAndHandle(routes.routes, host, port)
 
-    val terminationDuration = FiniteDuration(config.getDuration("chatwork-mention-webhook.api-server.termination-duration").toMillis, TimeUnit.MILLISECONDS)
+    val authenticationService = AuthenticationServiceHandler.partial(new AuthenticationServiceImpl)
+    val mentionService = MentionServiceHandler.partial(new MentionServiceImpl)
+    val service = ServiceHandler.concatOrNotFound(authenticationService, mentionService)
+    val grpcBindingFuture = Http().bindAndHandleAsync(
+      service,
+      interface = config.getString("chatwork-mention-webhook.grpc-server.host"),
+      port = config.getInt("chatwork-mention-webhook.grpc-server.port"),
+      connectionContext = HttpConnectionContext()
+    )
+
+    val terminationDuration = FiniteDuration(config.getDuration("chatwork-mention-webhook.termination-duration").toMillis, TimeUnit.MILLISECONDS)
 
     CoordinatedShutdown(system).addTask(CoordinatedShutdown.PhaseBeforeServiceUnbind, "shutdown http server") { () =>
       Future {
         bindingFuture.flatMap(_.terminate(terminationDuration))
+        grpcBindingFuture.flatMap(_.terminate(terminationDuration))
         Done.done()
       }
     }
