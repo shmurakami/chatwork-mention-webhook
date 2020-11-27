@@ -48,7 +48,8 @@ val `modules` = (project in file("modules"))
       "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test,
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
       "org.scalactic" %% "scalactic" % scalacticVersion % "test",
-    )
+    ),
+    akkaGrpcGeneratedSources := Seq(AkkaGrpc.Server)
   )
   .dependsOn(
     `domain`,

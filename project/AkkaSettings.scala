@@ -1,5 +1,5 @@
 object AkkaSettings {
-  val akkaVersion = "2.6.3"
+  val akkaVersion = "2.6.10"
 
   val akkaHttpVersion   = "10.1.11"
   val akkaStreamVersion = "2.5.26"
