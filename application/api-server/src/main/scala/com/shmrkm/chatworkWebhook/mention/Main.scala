@@ -6,6 +6,9 @@ import akka.Done
 import akka.actor.{ActorSystem, CoordinatedShutdown}
 import akka.grpc.scaladsl.ServiceHandler
 import akka.http.scaladsl.{Http, HttpConnectionContext}
+import com.redis.RedisClient
+import com.shmrkm.chatworkMention.repository.{AuthenticationRepositoryImpl, ChatworkApiRepositoryImpl}
+import com.shmrkm.chatworkWebhook.auth.AccessTokenGeneratorImpl
 import com.shmrkm.chatworkWebhook.interface.adaptor.{AuthenticationServiceHandler, AuthenticationServiceImpl, MentionServiceHandler, MentionServiceImpl}
 import com.shmrkm.chatworkWebhook.mention.controller.{AuthenticationController, MentionController, WebhookController}
 import com.typesafe.config.ConfigFactory
@@ -33,9 +36,15 @@ object Main {
     val port          = config.getInt("chatwork-mention-webhook.api-server.port")
     val bindingFuture = Http().bindAndHandle(routes.routes, host, port)
 
-    val authenticationService = AuthenticationServiceHandler.partial(new AuthenticationServiceImpl)
+    val authenticationService = AuthenticationServiceHandler.partial(
+      new AuthenticationServiceImpl(
+        new AccessTokenGeneratorImpl(),
+        new ChatworkApiRepositoryImpl(config.getString("chatwork.api.url")),
+        new AuthenticationRepositoryImpl(new RedisClient(config.getString("redis.host"), config.getInt("redis.port")))
+      )
+    )
     val mentionService = MentionServiceHandler.partial(new MentionServiceImpl)
-    val service = ServiceHandler.concatOrNotFound(authenticationService, mentionService)
+    val service        = ServiceHandler.concatOrNotFound(authenticationService, mentionService)
     val grpcBindingFuture = Http().bindAndHandleAsync(
       service,
       interface = config.getString("chatwork-mention-webhook.grpc-server.host"),
@@ -43,7 +52,10 @@ object Main {
       connectionContext = HttpConnectionContext()
     )
 
-    val terminationDuration = FiniteDuration(config.getDuration("chatwork-mention-webhook.termination-duration").toMillis, TimeUnit.MILLISECONDS)
+    val terminationDuration = FiniteDuration(
+      config.getDuration("chatwork-mention-webhook.termination-duration").toMillis,
+      TimeUnit.MILLISECONDS
+    )
 
     CoordinatedShutdown(system).addTask(CoordinatedShutdown.PhaseBeforeServiceUnbind, "shutdown http server") { () =>
       Future {
