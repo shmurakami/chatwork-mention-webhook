@@ -13,6 +13,6 @@ message AuthenticationRequest {
 
 message AuthenticationReply {
     uint32 account_id = 1;
-    string token = 2; // mention-webhook access token[
+    string token = 2; // mention-webhook access token
 }
 
