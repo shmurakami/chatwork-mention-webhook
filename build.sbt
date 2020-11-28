@@ -44,6 +44,7 @@ val `modules` = (project in file("modules"))
     name := "modules",
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-actor" % akkaVersion,
+      "com.typesafe.akka" %% "akka-discovery" % akkaVersion,
 
       "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test,
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
