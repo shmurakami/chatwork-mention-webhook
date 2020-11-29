@@ -9,7 +9,7 @@ import akka.http.scaladsl.{Http, HttpConnectionContext}
 import com.redis.RedisClient
 import com.shmrkm.chatworkMention.repository.{AuthenticationRepositoryImpl, ChatworkApiRepositoryImpl}
 import com.shmrkm.chatworkWebhook.auth.AccessTokenGeneratorImpl
-import com.shmrkm.chatworkWebhook.interface.adaptor.{AuthenticationServiceHandler, AuthenticationServiceImpl, MentionServiceHandler, MentionServiceImpl}
+import com.shmrkm.chatworkWebhook.interface.adaptor.{AuthenticationServiceHandler, AuthenticationServiceImpl, HelloServiceHandler, HelloServiceImpl, MentionServiceHandler, MentionServiceImpl}
 import com.shmrkm.chatworkWebhook.mention.controller.{AuthenticationController, MentionController, WebhookController}
 import com.typesafe.config.ConfigFactory
 
@@ -44,7 +44,8 @@ object Main {
       )
     )
     val mentionService = MentionServiceHandler.partial(new MentionServiceImpl)
-    val service        = ServiceHandler.concatOrNotFound(authenticationService, mentionService)
+    val helloService = HelloServiceHandler.partial(new HelloServiceImpl)
+    val service        = ServiceHandler.concatOrNotFound(authenticationService, mentionService, helloService)
     val grpcBindingFuture = Http().bindAndHandleAsync(
       service,
       interface = config.getString("chatwork-mention-webhook.grpc-server.host"),
