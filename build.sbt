@@ -50,12 +50,31 @@ val `modules` = (project in file("modules"))
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
       "org.scalactic" %% "scalactic" % scalacticVersion % "test",
     ),
-    akkaGrpcGeneratedSources := Seq(AkkaGrpc.Server)
+    akkaGrpcGeneratedSources := Seq(AkkaGrpc.Server, AkkaGrpc.Client)
   )
   .dependsOn(
     `domain`,
     `interface`,
     `infrastructure`,
+  )
+
+val `api-client` = (project in file("application/api-client"))
+  .settings(baseSettings)
+  .settings(
+    name := "api-client",
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-core" % circeVersion,
+      "io.circe" %% "circe-generic" % circeVersion,
+      "io.circe" %% "circe-parser" % circeVersion,
+      // https://mvnrepository.com/artifact/de.heikoseeberger/akka-http-circe
+      "de.heikoseeberger" %% "akka-http-circe" % akkaCirceVersion,
+    ),
+  )
+  .dependsOn(
+    `domain`,
+    `interface`,
+    `infrastructure`,
+    `modules`,
   )
 
 val `api-server` = (project in file("application/api-server"))
