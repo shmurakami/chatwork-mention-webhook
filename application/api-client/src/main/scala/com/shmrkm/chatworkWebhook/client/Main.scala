@@ -12,6 +12,8 @@ object Main extends App {
   implicit val system: ActorSystem          = ActorSystem("grpc-client")
   implicit val ec: ExecutionContextExecutor = system.dispatcher
 
+  val config = system.settings.config.getConfig("client")
+
   val grpcClientSettings = GrpcClientSettings.connectToServiceAt("127.0.0.1", 9090).withTls(false)
 
   auth()
@@ -19,8 +21,8 @@ object Main extends App {
   def auth(): Unit = {
     val client = AuthenticationServiceClient(grpcClientSettings)
 
-    val accountId  = ???
-    val cwApiToken = ???
+    val accountId = config.getInt("accountId")
+    val cwApiToken = config.getString("chatworkApiToken")
     client
       .auth(AuthenticationRequest(accountId, cwApiToken))
       .onComplete {
