@@ -35,6 +35,10 @@ object Main {
     val host          = config.getString("chatwork-mention-webhook.api-server.host")
     val port          = config.getInt("chatwork-mention-webhook.api-server.port")
     val bindingFuture = Http().bindAndHandle(routes.routes, host, port)
+    bindingFuture.foreach(_ => println(s"bind http server as ${host}:${port}"))
+
+    val grpcInterface = config.getString("chatwork-mention-webhook.grpc-server.host")
+    val grpcPort = config.getInt("chatwork-mention-webhook.grpc-server.port")
 
     val authenticationService = AuthenticationServiceHandler.partial(
       new AuthenticationServiceImpl(
@@ -43,15 +47,17 @@ object Main {
         new AuthenticationRepositoryImpl(new RedisClient(config.getString("redis.host"), config.getInt("redis.port")))
       )
     )
+
     val mentionService = MentionServiceHandler.partial(new MentionServiceImpl)
     val helloService = HelloServiceHandler.partial(new HelloServiceImpl)
     val service        = ServiceHandler.concatOrNotFound(authenticationService, mentionService, helloService)
     val grpcBindingFuture = Http().bindAndHandleAsync(
       service,
-      interface = config.getString("chatwork-mention-webhook.grpc-server.host"),
-      port = config.getInt("chatwork-mention-webhook.grpc-server.port"),
+      interface = grpcInterface,
+      port = grpcPort,
       connectionContext = HttpConnectionContext()
     )
+    grpcBindingFuture.foreach(_ => println(s"bind grpc server as ${grpcInterface}:${grpcPort}"))
 
     val terminationDuration = FiniteDuration(
       config.getDuration("chatwork-mention-webhook.termination-duration").toMillis,
