@@ -41,7 +41,7 @@ object Main {
     val grpcPort = config.getInt("chatwork-mention-webhook.grpc-server.port")
 
     val authenticationService = AuthenticationServiceHandler.partial(
-      new AuthenticationServiceImpl(
+      AuthenticationServiceImpl(
         new AccessTokenGeneratorImpl(),
         new ChatworkApiRepositoryImpl(config.getString("chatwork.api.url")),
         new AuthenticationRepositoryImpl(new RedisClient(config.getString("redis.host"), config.getInt("redis.port")))

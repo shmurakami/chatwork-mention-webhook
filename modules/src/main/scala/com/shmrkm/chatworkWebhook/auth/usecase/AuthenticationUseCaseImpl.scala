@@ -8,11 +8,11 @@ import com.shmrkm.chatworkWebhook.mention.protocol.command.AuthenticationCommand
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
-class AuthenticationUseCase(
+class AuthenticationUseCaseImpl(
     accessTokenGenerator: AccessTokenGenerator,
     chatworkApiRepository: ChatworkApiRepository,
     authenticationRepository: AuthenticationRepository
-)(implicit ec: ExecutionContext) {
+)(implicit ec: ExecutionContext) extends AuthenticationUseCase {
 
   def execute(request: AuthenticationCommand): Future[Try[AccessToken]] = {
     chatworkApiRepository
