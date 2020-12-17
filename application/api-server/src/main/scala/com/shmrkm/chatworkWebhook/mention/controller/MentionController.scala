@@ -4,12 +4,11 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import com.shmrkm.chatworkMention.exception.{InvalidAccountIdException, KeyNotFoundException, RequestFailureException}
+import com.shmrkm.chatworkMention.exception.{InvalidAccountIdException, RequestFailureException}
 import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, AuthenticationRepositoryFactory, MentionRepository, MentionRepositoryFactory}
 import com.shmrkm.chatworkWebhook.auth.exception.AuthenticationFailureException
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
-import com.shmrkm.chatworkWebhook.domain.model.auth.{AccessToken, Authentication}
-import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
+import com.shmrkm.chatworkWebhook.domain.model.auth.Authentication
 import com.shmrkm.chatworkWebhook.mention.protocol.query
 import com.shmrkm.chatworkWebhook.mention.protocol.query.MentionErrorResponse.InvalidRequest
 import com.shmrkm.chatworkWebhook.mention.protocol.query.{MentionListResponse, MentionQuery}
@@ -26,7 +25,6 @@ class MentionController(implicit system: ActorSystem)
   override implicit def ec: ExecutionContext = system.dispatcher
 
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
-  import io.circe.generic.auto._
 
   private val mentionRepository: MentionRepository     = factoryMentionRepository()
   private val authRepository: AuthenticationRepository = factoryAuthenticationRepository()
