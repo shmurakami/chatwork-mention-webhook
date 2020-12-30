@@ -1,19 +1,25 @@
 package com.shmrkm.chatworkWebhook.interface.adaptor
 
-import com.shmrkm.chatworkWebhook.domain.model.account.{ AccountId, AccountName, FromAccountAvatarUrl }
+import akka.actor.ActorSystem
+import akka.http.scaladsl.model.{HttpEntity, HttpMessage, HttpMethod, HttpMethods, HttpRequest}
+import akka.testkit.TestKit
+import com.shmrkm.chatworkWebhook.domain.model.account.{AccountId, AccountName, FromAccountAvatarUrl}
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
-import com.shmrkm.chatworkWebhook.domain.model.message.{ MessageBody, MessageId, SendTime, UpdateTime }
+import com.shmrkm.chatworkWebhook.domain.model.message.{MessageBody, MessageId, SendTime, UpdateTime}
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
-import com.shmrkm.chatworkWebhook.domain.model.room.{ RoomIconUrl, RoomId, RoomName }
-import com.shmrkm.chatworkWebhook.mention.protocol.query.{ MentionListResponse, MentionQuery }
+import com.shmrkm.chatworkWebhook.domain.model.room.{RoomIconUrl, RoomId, RoomName}
+import com.shmrkm.chatworkWebhook.mention.protocol.query.{MentionListResponse, MentionQuery}
 import com.shmrkm.chatworkWebhook.mention.usecase.MentionListUseCase
+import org.reactivestreams.{Publisher, Subscriber, Subscription}
+import org.scalatest.concurrent.PatienceConfiguration.{Interval, Timeout}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.time.{Seconds, Span}
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 
-class MentionServiceImplSpec extends AnyWordSpecLike with Matchers with ScalaFutures {
+class MentionServiceImplSpec extends TestKit(ActorSystem()) with AnyWordSpecLike with Matchers with ScalaFutures {
 
   "MentionService" should {
     "return list of mention" in {
@@ -50,7 +56,7 @@ class MentionServiceImplSpec extends AnyWordSpecLike with Matchers with ScalaFut
                     body = MessageBody("body10"),
                     sendTime = SendTime(0),
                     updateTime = UpdateTime(0)
-                  ),
+                  )
                 )
               )
             )
@@ -91,7 +97,47 @@ class MentionServiceImplSpec extends AnyWordSpecLike with Matchers with ScalaFut
     }
 
     "return stream of new mention" in {
+      implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
 
+      val mentionListUseCase: MentionListUseCase = (query: MentionQuery) => Future {
+        Right(MentionListResponse(MentionList(Seq.empty)))
+      }
+
+      val publisher: Publisher[Int] = (s: Subscriber[_ >: Int]) => {
+        s.onSubscribe(new Subscription {
+          override def request(n: Long): Unit = println(s"on request $n $s")
+          override def cancel(): Unit = println(s"on cancel $s")
+        })
+
+//        (0 to 7).foreach { num =>
+//          s.onNext(100)
+////          if (s eq null) s.onComplete()
+////          else s.onNext(num)
+//        }
+
+        Future {
+          Thread.sleep(500L)
+          s.onNext(1)
+        }
+
+//        s.onComplete()
+      }
+
+      val mentionService = new MentionServiceImpl(mentionListUseCase)
+//      val mentionService = MentionServiceHandler.partial(new MentionServiceImpl(mentionListUseCase, publisher))
+//      val reply = mentionService.apply(HttpRequest(
+//        method = HttpMethods.POST,
+//        uri = s"/${MentionService.name}/subscribe",
+//        entity = HttpEntity("account_id=1")
+//      )).futureValue
+//
+//      reply shouldBe null
+
+      val source = mentionService.subscribe(MentionSubscribeRequest(accountId = 1))
+      val f = source.runForeach { out => println(s"got reply $out") }
+      whenReady(f, Timeout(Span(10L, Seconds)), Interval(Span(1L, Seconds))) {
+        _ => println("done")
+      }
     }
   }
 

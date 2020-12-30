@@ -7,29 +7,34 @@ import akka.actor.{ActorSystem, CoordinatedShutdown}
 import akka.grpc.scaladsl.ServiceHandler
 import akka.http.scaladsl.{Http, HttpConnectionContext}
 import com.redis.RedisClient
-import com.shmrkm.chatworkMention.repository.{AuthenticationRepositoryImpl, ChatworkApiRepositoryImpl}
+import com.shmrkm.chatworkMention.repository.{AuthenticationRepositoryImpl, ChatworkApiRepositoryImpl, MentionRepositoryFactory, MentionRepositoryRedisImpl}
 import com.shmrkm.chatworkWebhook.auth.AccessTokenGeneratorImpl
 import com.shmrkm.chatworkWebhook.interface.adaptor.{AuthenticationServiceHandler, AuthenticationServiceImpl, HelloServiceHandler, HelloServiceImpl, MentionServiceHandler, MentionServiceImpl}
 import com.shmrkm.chatworkWebhook.mention.controller.{AuthenticationController, MentionController, WebhookController}
+import com.shmrkm.chatworkWebhook.mention.usecase.MentionListUseCaseImpl
 import com.typesafe.config.ConfigFactory
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.concurrent.duration.FiniteDuration
 
-object Main {
+object Main extends MentionRepositoryFactory {
 //  Kamon.init()
+  val config = ConfigFactory.load()
+
+  implicit val system: ActorSystem = ActorSystem("mention-webhook", config)
+  implicit val executionContext: ExecutionContextExecutor = system.dispatcher
+
+  override implicit def ec: ExecutionContext = executionContext
 
   def main(args: Array[String]): Unit = {
-    val config = ConfigFactory.load()
 
-    implicit val system           = ActorSystem("mention-webhook", config)
-    implicit val executionContext = system.dispatcher
+    val mentionListUseCase = new MentionListUseCaseImpl(factoryMentionRepository())
 
     // TODO use airframe
     val routes = new Routes(
       new AuthenticationController,
       new WebhookController,
-      new MentionController
+      new MentionController(mentionListUseCase)
     )
 
     val host          = config.getString("chatwork-mention-webhook.api-server.host")
@@ -48,7 +53,7 @@ object Main {
       )
     )
 
-    val mentionService = MentionServiceHandler.partial(new MentionServiceImpl)
+    val mentionService = MentionServiceHandler.partial(new MentionServiceImpl(mentionListUseCase))
     val helloService = HelloServiceHandler.partial(new HelloServiceImpl)
     val service        = ServiceHandler.concatOrNotFound(authenticationService, mentionService, helloService)
     val grpcBindingFuture = Http().bindAndHandleAsync(
