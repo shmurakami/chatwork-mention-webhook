@@ -1,8 +1,11 @@
 package com.shmrkm.chatworkWebhook.client
 
+import java.time.LocalDateTime
+import java.util.concurrent.TimeUnit
+
 import akka.actor.ActorSystem
 import akka.grpc.GrpcClientSettings
-import com.shmrkm.chatworkWebhook.interface.adaptor.{AuthenticationRequest, AuthenticationServiceClient, HelloRequest, HelloServiceClient}
+import com.shmrkm.chatworkWebhook.interface.adaptor.{AuthenticationRequest, AuthenticationServiceClient, HelloRequest, HelloServiceClient, MentionListRequest, MentionServiceClient, MentionSubscribeRequest}
 
 import scala.concurrent.ExecutionContextExecutor
 import scala.util.{Failure, Success}
@@ -14,14 +17,23 @@ object Main extends App {
 
   val config = system.settings.config.getConfig("client")
 
-  val grpcClientSettings = GrpcClientSettings.connectToServiceAt("127.0.0.1", 9090).withTls(false)
+  val grpcClientSettings = GrpcClientSettings
+    .connectToServiceAt("127.0.0.1", 9090)
+    .withTls(false)
+    .withChannelBuilderOverrides(
+      _.keepAliveWithoutCalls(true)
+        .keepAliveTime(60L, TimeUnit.SECONDS)
+    )
 
-  auth()
+  //  auth()
+
+//  list()
+  subscribe()
 
   def auth(): Unit = {
     val client = AuthenticationServiceClient(grpcClientSettings)
 
-    val accountId = config.getInt("accountId")
+    val accountId  = config.getInt("accountId")
     val cwApiToken = config.getString("chatworkApiToken")
     client
       .auth(AuthenticationRequest(accountId, cwApiToken))
@@ -36,8 +48,33 @@ object Main extends App {
 
     client.hello(HelloRequest("Alice")).onComplete {
       case Success(reply) => println(reply.message)
-      case Failure(ex) => println("failure to say hello", ex)
+      case Failure(ex)    => println("failure to say hello", ex)
     }
+  }
+
+  def list(): Unit = {
+    val client = MentionServiceClient(grpcClientSettings)
+
+    client
+      .list(MentionListRequest(1))
+      .onComplete {
+        case Success(reply) => println(reply)
+        case _              => println("error")
+      }
+  }
+
+  def subscribe(): Unit = {
+    val client = MentionServiceClient(grpcClientSettings)
+
+    println("start subscribe", LocalDateTime.now())
+    client
+      .subscribe(MentionSubscribeRequest(1))
+      .runForeach(reply => {
+        println(reply)
+      })
+      .recover {
+        case e => println(s"error caused by : $e", LocalDateTime.now())
+      }
   }
 
 }
