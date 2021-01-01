@@ -3,7 +3,7 @@ package com.shmrkm.chatworkWebhook.mention.subscriber
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit}
 import com.redis.RedisClient
-import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, ChatworkApiRepository, MeResponse, MentionRepositoryRedisImpl}
+import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, ChatworkApiRepository, MeResponse, MentionRepositoryRedisImpl, StreamConsumer, StreamRepository}
 import com.shmrkm.chatworkWebhook.concerns.StopSystemAfterAll
 import com.shmrkm.chatworkWebhook.domain.model.account.{AccountId, AccountName, FromAccount, FromAccountAvatarUrl}
 import com.shmrkm.chatworkWebhook.domain.model.auth.{AccessToken, Authentication}
@@ -22,7 +22,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
-import scala.util.Try
+import scala.util.{Success, Try}
 
 object MessageSubscriberSpec {
   val config = ConfigFactory.parseString("""
@@ -83,6 +83,17 @@ class MessageSubscriberSpec
 
       val messageJsonString = message.asJson.toString
 
+      // TODO refactor to pass IO client instead of RedisClient
+      val streamRepository = new StreamRepository {
+        override def publishToPushNotification(message: QueryMessage): Future[Try[Boolean]] = Future.successful(Success(true))
+
+        override def publish(channel: String, message: Message): Future[Try[Boolean]] = ???
+        override def publishToWebhookFlow(message: Message): Future[Try[Boolean]] = ???
+        override def subscribe(channel: String, consumer: StreamConsumer): Unit = ???
+        override def subscribeWebhookFlow(consumer: StreamConsumer): Unit = ???
+        override def subscribePushNotification(consumer: StreamConsumer): Unit = ???
+      }
+
       "run update readmodel flow" in {
         implicit val ec: ExecutionContext = system.dispatcher
 
@@ -92,7 +103,7 @@ class MessageSubscriberSpec
 
         val subscriber =
           system.actorOf(
-            MessageSubscriberWorker.props(authenticationRepository, mentionRepository, chatworkApiRepository),
+            MessageSubscriberWorker.props(authenticationRepository, streamRepository, mentionRepository, chatworkApiRepository),
             "subscriber"
           )
         subscriber ! ConsumedMessage(messageJsonString)
@@ -136,7 +147,7 @@ class MessageSubscriberSpec
         // save 200 items. and then consume 1 message then returns only 200 items
         mentionRepository.updateReadModel(toAccountId, storeMentionList)
 
-        val subscriber = system.actorOf(MessageSubscriberWorker.props(authenticationRepository, mentionRepository, chatworkApiRepository), "subscriber_for_up_to")
+        val subscriber = system.actorOf(MessageSubscriberWorker.props(authenticationRepository, streamRepository, mentionRepository, chatworkApiRepository), "subscriber_for_up_to")
         subscriber ! ConsumedMessage(messageJsonString)
 
         expectNoMessage(1000 milliseconds)

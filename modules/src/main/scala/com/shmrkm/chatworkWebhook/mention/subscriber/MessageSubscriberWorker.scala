@@ -14,21 +14,23 @@ import com.typesafe.config.Config
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Try}
+import scala.util.{Failure, Success, Try}
 
 object MessageSubscriberWorker {
 
   def props(
       authenticationRepository: AuthenticationRepository,
+      streamRepository: StreamRepository,
       mentionRepository: MentionRepository,
       chatworkApiRepository: ChatworkApiRepository
   ) =
-    Props(new MessageSubscriberWorker(authenticationRepository, mentionRepository, chatworkApiRepository))
+    Props(new MessageSubscriberWorker(authenticationRepository, streamRepository, mentionRepository, chatworkApiRepository))
   def name = "message-subscriber-worker"
 }
 
 class MessageSubscriberWorker(
     authRepository: AuthenticationRepository,
+    streamRepository: StreamRepository,
     mentionRepository: MentionRepository,
     chatworkApiRepository: ChatworkApiRepository
 ) extends Actor
@@ -61,6 +63,7 @@ class MessageSubscriberWorker(
     source
       .map { message => decode[Message](message.value).getOrElse(null) }
       .via(retrieveInsufficientDataAndBuildMessage())
+      .via(publishToPushStream())
       .via(appendMessage())
       .via(updateReadModel())
       .toMat(Sink.head)(Keep.right)
@@ -108,6 +111,14 @@ class MessageSubscriberWorker(
       }
   }
 
+  def publishToPushStream(): Flow[QueryMessage, QueryMessage, NotUsed] = {
+    Flow[QueryMessage]
+      .map { message =>
+        streamRepository.publishToPushNotification(message)
+        message
+      }
+  }
+
   def appendMessage(): Flow[QueryMessage, MentionList, NotUsed] = {
     Flow[QueryMessage]
       .mapAsync(1) { message =>
@@ -121,6 +132,8 @@ class MessageSubscriberWorker(
       .map { mentionList =>
         // small benefit to show old mentions. set limit as 200
         mentionRepository.updateReadModel(mentionList.list.head.toAccountId, mentionList.storeList)
+        Success(Done.done())
       }
   }
+
 }

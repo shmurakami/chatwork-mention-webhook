@@ -3,7 +3,7 @@ package com.shmrkm.chatworkWebhook.interface.adaptor
 import akka.NotUsed
 import akka.stream.scaladsl.Source
 import com.redis._
-import com.shmrkm.chatworkMention.repository.MentionStreamRepositoryFactory
+import com.shmrkm.chatworkMention.repository.{MentionStreamRepositoryFactory, StreamConsumer}
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
 import com.shmrkm.chatworkWebhook.mention.protocol.query.MentionQuery
@@ -41,11 +41,12 @@ class MentionServiceImpl[T](mentionListUseCase: MentionListUseCase)(implicit val
 
     val publisher = new Publisher[String] {
       override def subscribe(s: Subscriber[_ >: String]): Unit = {
-        mentionStreamRepository.subscribe {
-          case M(_, message) => s.onNext(message)
-          case E(e) => s.onError(e)
-          case _ => ()
-        }
+        mentionStreamRepository.subscribePushNotification(new StreamConsumer {
+          override def onSubscribe(channel: String): Unit = ()
+          override def onUnsubscribe(channel: String): Unit = ()
+          override def onMessage(message: String): Unit = s.onNext(message)
+          override def onError(e: Throwable): Unit = s.onError(e)
+        })
       }
     }
 
