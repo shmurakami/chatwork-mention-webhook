@@ -1,0 +1,49 @@
+package com.shmrkm.chatworkWebhook.interface.adaptor
+
+import akka.NotUsed
+import akka.stream.scaladsl.Source
+import com.shmrkm.chatworkMention.repository.{ MentionStreamRepositoryFactory, StreamConsumer }
+import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
+import org.reactivestreams.{ Publisher, Subscriber }
+
+import scala.concurrent.ExecutionContext
+
+class MentionSubscribeServiceImpl(publisher: Publisher[String] = null)(implicit val ec: ExecutionContext)
+    extends MentionSubscribeService
+    with MentionStreamRepositoryFactory
+    with MentionServiceReplier {
+
+  override def subscribe(in: MentionSubscribeRequest): Source[MentionReply, NotUsed] = {
+    Source.fromPublisher(resolvePublisher).map { message =>
+      import io.circe.generic.auto._
+      import io.circe.parser._
+      decode[QueryMessage](message) match {
+        // TODO check account ID. actually should subscribing filter with given account id
+        case Right(queryMessage) => queryMessage2MentionReply(queryMessage)
+        case Left(e)             => throw e
+      }
+    }
+  }
+
+  private def resolvePublisher: Publisher[String] = {
+    def defaultPublisher: Publisher[String] = {
+      new Publisher[String] {
+        override def subscribe(s: Subscriber[_ >: String]): Unit = {
+          val mentionStreamRepository = factoryStreamRepository()
+          mentionStreamRepository.subscribePushNotification(new StreamConsumer {
+            override def onSubscribe(channel: String): Unit   = ()
+            override def onUnsubscribe(channel: String): Unit = ()
+            override def onMessage(message: String): Unit     = s.onNext(message)
+            override def onError(e: Throwable): Unit          = s.onError(e)
+          })
+        }
+      }
+    }
+
+    publisher match {
+      case null => defaultPublisher
+      case p    => p
+    }
+  }
+
+}

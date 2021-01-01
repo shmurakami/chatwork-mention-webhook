@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit
 
 import akka.actor.ActorSystem
 import akka.grpc.GrpcClientSettings
-import com.shmrkm.chatworkWebhook.interface.adaptor.{AuthenticationRequest, AuthenticationServiceClient, HelloRequest, HelloServiceClient, MentionListRequest, MentionServiceClient, MentionSubscribeRequest}
+import com.shmrkm.chatworkWebhook.interface.adaptor._
 
 import scala.concurrent.ExecutionContextExecutor
 import scala.util.{Failure, Success}
@@ -64,7 +64,7 @@ object Main extends App {
   }
 
   def subscribe(): Unit = {
-    val client = MentionServiceClient(grpcClientSettings)
+    val client = MentionSubscribeServiceClient(grpcClientSettings)
 
     println("start subscribe", LocalDateTime.now())
     client

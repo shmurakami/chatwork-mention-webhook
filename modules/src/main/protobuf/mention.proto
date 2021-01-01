@@ -5,6 +5,9 @@ option java_package = "com.shmrkm.chatworkWebhook.interface.adaptor";
 // service
 service MentionService {
     rpc list (MentionListRequest) returns (MentionListReply);
+}
+
+service MentionSubscribeService {
     rpc subscribe (MentionSubscribeRequest) returns (stream MentionReply);
 }
 
