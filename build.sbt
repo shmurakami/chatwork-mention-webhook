@@ -98,9 +98,12 @@ val `api-server` = (project in file("application/api-server"))
       "de.heikoseeberger" %% "akka-http-circe" % akkaCirceVersion,
     ),
     // docker
-    packageName in Docker := "shmurakami/chatwork-mention-webhook-api-server",
-    version in Docker := "0.0.1",
     dockerBaseImage := baseImage,
+    packageName in Docker := "api-server",
+    version in Docker := "0.1.0",
+    // how to set dynamically?
+    dockerExposedPorts := Seq(8080, 18080),
+    dockerRepository := dockerImageRepositoryURI,
     // java options
     javaOptions in Universal ++= Seq(
       "-server"
@@ -127,9 +130,10 @@ val `read-model-updater` = (project in file("application/read-model-updater"))
       "io.circe" %% "circe-parser" % circeVersion,
     ),
     // docker
-    packageName in Docker := "shmurakami/chatwork-mention-webhook-read-model-updater",
-    version in Docker := "0.0.1",
-    dockerBaseImage := baseImage
+    dockerBaseImage := baseImage,
+    packageName in Docker := "read-model-updater",
+    dockerRepository := dockerImageRepositoryURI,
+    version in Docker := "0.1.0"
   )
   .dependsOn(
     `domain`,
