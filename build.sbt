@@ -100,7 +100,7 @@ val `api-server` = (project in file("application/api-server"))
     // docker
     dockerBaseImage := baseImage,
     packageName in Docker := "api-server",
-    version in Docker := "0.1.0",
+    version in Docker := "0.1.1",
     // how to set dynamically?
     dockerExposedPorts := Seq(8080, 18080),
     dockerRepository := dockerImageRepositoryURI,

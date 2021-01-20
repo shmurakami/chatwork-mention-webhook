@@ -87,7 +87,7 @@ class MessageSubscriberSpec
       val streamRepository = new StreamRepository {
         override def publishToPushNotification(message: QueryMessage): Future[Try[Boolean]] = Future.successful(Success(true))
 
-        override def publish(channel: String, message: Message): Future[Try[Boolean]] = ???
+        override def publish(channel: String, message: String): Future[Try[Boolean]] = ???
         override def publishToWebhookFlow(message: Message): Future[Try[Boolean]] = ???
         override def subscribe(channel: String, consumer: StreamConsumer): Unit = ???
         override def subscribeWebhookFlow(consumer: StreamConsumer): Unit = ???

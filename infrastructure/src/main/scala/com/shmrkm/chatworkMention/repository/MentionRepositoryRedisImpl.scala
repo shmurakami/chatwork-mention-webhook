@@ -1,7 +1,7 @@
 package com.shmrkm.chatworkMention.repository
 
 import akka.Done
-import com.redis.{PubSubMessage, _}
+import com.redis._
 import com.shmrkm.chatworkMention.exception.StoreException
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
@@ -22,7 +22,7 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
   private val logger = Logger(classOf[MentionRepository]);
   private val config = ConfigFactory.load("redis")
 
-  override def publish(channel: String, message: Message): Future[Try[Boolean]] = Future {
+  override def publish(channel: String, message: String): Future[Try[Boolean]] = Future {
     val result = redisClient.publish(channel, message.asJson.noSpaces) match {
       case Some(_) => Success(true)
       case None => Failure(new StoreException("failed to publish to redis"))
@@ -32,8 +32,8 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
     result
   }
 
-  override def publishToWebhookFlow(message: Message): Future[Try[Boolean]] = publish(resolveWebhookFlowStreamChannel(), message)
-  override def publishToPushNotification(message: QueryMessage): Future[Try[Boolean]] = publish(resolvePushNotificationStreamChannel(), message.toMessage)
+  override def publishToWebhookFlow(message: Message): Future[Try[Boolean]] = publish(resolveWebhookFlowStreamChannel(), message.asJson.noSpaces)
+  override def publishToPushNotification(message: QueryMessage): Future[Try[Boolean]] = publish(resolvePushNotificationStreamChannel(), message.asJson.noSpaces)
 
   override def subscribe(channel: String, consumer: StreamConsumer): Unit = {
     redisClient.subscribe(channel) {

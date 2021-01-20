@@ -2,6 +2,7 @@ package com.shmrkm.chatworkMention.repository
 
 import com.shmrkm.chatworkWebhook.domain.model.message.Message
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
+import io.circe.syntax.EncoderOps
 
 import scala.concurrent.Future
 import scala.util.Try
@@ -14,7 +15,7 @@ trait StreamConsumer {
 }
 
 trait StreamRepository {
-  def publish(channel: String, message: Message): Future[Try[Boolean]]
+  def publish(channel: String, message: String): Future[Try[Boolean]]
   def publishToWebhookFlow(message: Message): Future[Try[Boolean]]
   def publishToPushNotification(message: QueryMessage): Future[Try[Boolean]]
 
