@@ -100,7 +100,7 @@ val `api-server` = (project in file("application/api-server"))
     // docker
     dockerBaseImage := baseImage,
     packageName in Docker := "api-server",
-    version in Docker := "0.1.1",
+    version in Docker := applicationVersion,
     // how to set dynamically?
     dockerExposedPorts := Seq(8080, 18080),
     dockerRepository := dockerImageRepositoryURI,
@@ -133,7 +133,7 @@ val `read-model-updater` = (project in file("application/read-model-updater"))
     dockerBaseImage := baseImage,
     packageName in Docker := "read-model-updater",
     dockerRepository := dockerImageRepositoryURI,
-    version in Docker := "0.1.0"
+    version in Docker := applicationVersion
   )
   .dependsOn(
     `domain`,
