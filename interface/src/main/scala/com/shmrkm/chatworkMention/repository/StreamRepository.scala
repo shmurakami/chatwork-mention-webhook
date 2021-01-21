@@ -2,7 +2,6 @@ package com.shmrkm.chatworkMention.repository
 
 import com.shmrkm.chatworkWebhook.domain.model.message.Message
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
-import io.circe.syntax.EncoderOps
 
 import scala.concurrent.Future
 import scala.util.Try

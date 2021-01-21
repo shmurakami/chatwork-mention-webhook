@@ -23,7 +23,7 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
   private val config = ConfigFactory.load("redis")
 
   override def publish(channel: String, message: String): Future[Try[Boolean]] = Future {
-    val result = redisClient.publish(channel, message.asJson.noSpaces) match {
+    val result = redisClient.publish(channel, message) match {
       case Some(_) => Success(true)
       case None => Failure(new StoreException("failed to publish to redis"))
     }
