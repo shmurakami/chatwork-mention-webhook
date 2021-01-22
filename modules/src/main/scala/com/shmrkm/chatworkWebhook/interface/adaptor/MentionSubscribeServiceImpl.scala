@@ -1,19 +1,20 @@
 package com.shmrkm.chatworkWebhook.interface.adaptor
 
 import akka.NotUsed
+import akka.grpc.scaladsl.Metadata
 import akka.stream.scaladsl.Source
-import com.shmrkm.chatworkMention.repository.{ MentionStreamRepositoryFactory, StreamConsumer }
+import com.shmrkm.chatworkMention.repository.{MentionStreamRepositoryFactory, StreamConsumer}
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
-import org.reactivestreams.{ Publisher, Subscriber }
+import org.reactivestreams.{Publisher, Subscriber}
 
 import scala.concurrent.ExecutionContext
 
 class MentionSubscribeServiceImpl(publisher: Publisher[String] = null)(implicit val ec: ExecutionContext)
-    extends MentionSubscribeService
+    extends MentionSubscribeServicePowerApi
     with MentionStreamRepositoryFactory
     with MentionServiceReplier {
 
-  override def subscribe(in: MentionSubscribeRequest): Source[MentionReply, NotUsed] = {
+  override def subscribe(in: MentionSubscribeRequest, metadata: Metadata): Source[MentionReply, NotUsed] = {
     Source.fromPublisher(resolvePublisher).map { message =>
       import io.circe.generic.auto._
       import io.circe.parser._

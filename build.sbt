@@ -55,7 +55,8 @@ val `modules` = (project in file("modules"))
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
       "org.scalactic" %% "scalactic" % scalacticVersion % "test",
     ),
-    akkaGrpcGeneratedSources := Seq(AkkaGrpc.Server, AkkaGrpc.Client)
+    akkaGrpcGeneratedSources := Seq(AkkaGrpc.Server, AkkaGrpc.Client),
+    akkaGrpcCodeGeneratorSettings += "server_power_apis"
   )
   .dependsOn(
     `domain`,

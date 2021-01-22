@@ -9,7 +9,7 @@ import akka.http.scaladsl.{Http, HttpConnectionContext}
 import com.redis.RedisClient
 import com.shmrkm.chatworkMention.repository.{AuthenticationRepositoryImpl, ChatworkApiRepositoryImpl, MentionRepositoryFactory, MentionRepositoryRedisImpl}
 import com.shmrkm.chatworkWebhook.auth.AccessTokenGeneratorImpl
-import com.shmrkm.chatworkWebhook.interface.adaptor.{AuthenticationServiceHandler, AuthenticationServiceImpl, HelloServiceHandler, HelloServiceImpl, MentionServiceHandler, MentionServiceImpl, MentionSubscribeServiceHandler, MentionSubscribeServiceImpl}
+import com.shmrkm.chatworkWebhook.interface.adaptor.{AuthenticationServiceHandler, AuthenticationServiceImpl, HelloServiceHandler, HelloServiceImpl, MentionServiceHandler, MentionServiceImpl, MentionServicePowerApiHandler, MentionSubscribeServiceHandler, MentionSubscribeServiceImpl, MentionSubscribeServicePowerApiHandler}
 import com.shmrkm.chatworkWebhook.mention.controller.{AuthenticationController, MentionController, WebhookController}
 import com.shmrkm.chatworkWebhook.mention.usecase.MentionListUseCaseImpl
 import com.typesafe.config.ConfigFactory
@@ -53,8 +53,8 @@ object Main extends MentionRepositoryFactory {
       )
     )
 
-    val mentionService = MentionServiceHandler.partial(new MentionServiceImpl(mentionListUseCase))
-    val mentionSubscribeService = MentionSubscribeServiceHandler.partial(new MentionSubscribeServiceImpl)
+    val mentionService = MentionServicePowerApiHandler.partial(new MentionServiceImpl(mentionListUseCase))
+    val mentionSubscribeService = MentionSubscribeServicePowerApiHandler.partial(new MentionSubscribeServiceImpl)
     val helloService = HelloServiceHandler.partial(new HelloServiceImpl)
     val service        = ServiceHandler.concatOrNotFound(authenticationService, mentionService, mentionSubscribeService, helloService)
     val grpcBindingFuture = Http().bindAndHandleAsync(
