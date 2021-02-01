@@ -1,8 +1,10 @@
 package com.shmrkm.chatworkWebhook.interface.adaptor
 
 import akka.actor.ActorSystem
+import akka.grpc.scaladsl.{Metadata, MetadataEntry}
 import akka.stream.scaladsl.Sink
 import akka.testkit.TestKit
+import akka.util.ByteString
 import com.shmrkm.chatworkMention.repository.AuthenticationRepository
 import com.shmrkm.chatworkWebhook.domain.model.account.{AccountId, AccountName, FromAccountAvatarUrl}
 import com.shmrkm.chatworkWebhook.domain.model.auth.{AccessToken, Authentication}
@@ -66,7 +68,18 @@ class MentionSubscribeServiceImplSpec
 
       val subscribeService = new MentionSubscribeServiceImpl(publisher, authenticationRepository)
 
-      val source       = subscribeService.subscribe(MentionSubscribeRequest(accountId = 1))
+      val token = "token"
+      val metadata = new Metadata {
+        override def getText(key: String): Option[String] = key match {
+          case "X-Authentication" => Some(token)
+          case _ => None
+        }
+        override def getBinary(key: String): Option[ByteString] = ???
+        override def asMap: Map[String, List[MetadataEntry]] = ???
+        override def asList: List[(String, MetadataEntry)] = ???
+      }
+
+      val source       = subscribeService.subscribe(MentionSubscribeRequest(accountId = 1), metadata)
       val mentionReply = source.runWith(Sink.head).futureValue(Timeout(Span(5L, Seconds)), Interval(Span(1L, Seconds)))
       val expect = MentionReply(
         id = "1",

@@ -4,10 +4,12 @@ import akka.NotUsed
 import akka.grpc.scaladsl.Metadata
 import akka.stream.scaladsl.Source
 import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, MentionStreamRepositoryFactory, StreamConsumer}
+import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
 import org.reactivestreams.{Publisher, Subscriber}
 
 import scala.concurrent.ExecutionContext
+import scala.util.{Failure, Success, Try}
 
 class MentionSubscribeServiceImpl(publisher: Publisher[String] = null, override implicit val authenticationRepository: AuthenticationRepository)(implicit val ec: ExecutionContext)
     extends MentionSubscribeServicePowerApi
@@ -16,6 +18,13 @@ class MentionSubscribeServiceImpl(publisher: Publisher[String] = null, override 
     with TokenAuthorizer {
 
   override def subscribe(in: MentionSubscribeRequest, metadata: Metadata): Source[MentionReply, NotUsed] = {
+    Try(authorize(AccountId(in.accountId), TokenAuthenticationMetadata(metadata).token)) match {
+      case Success(_) => execute(in)
+      case Failure(ex) => Source.failed(ex)
+    }
+  }
+
+  private def execute(in: MentionSubscribeRequest): Source[MentionReply, NotUsed] = {
     Source.fromPublisher(resolvePublisher).map { message =>
       import io.circe.generic.auto._
       import io.circe.parser._
