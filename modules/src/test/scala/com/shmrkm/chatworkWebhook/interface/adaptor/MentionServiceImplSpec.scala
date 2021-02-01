@@ -1,8 +1,13 @@
 package com.shmrkm.chatworkWebhook.interface.adaptor
 
 import akka.actor.ActorSystem
+import akka.grpc.scaladsl.{Metadata, MetadataEntry}
 import akka.testkit.TestKit
+import akka.util.ByteString
+import com.shmrkm.chatworkMention.repository.AuthenticationRepository
 import com.shmrkm.chatworkWebhook.domain.model.account.{AccountId, AccountName, FromAccountAvatarUrl}
+import com.shmrkm.chatworkWebhook.domain.model.auth.{AccessToken, Authentication}
+import com.shmrkm.chatworkWebhook.domain.model.chatwork.ApiToken
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
 import com.shmrkm.chatworkWebhook.domain.model.message.{MessageBody, MessageId, SendTime, UpdateTime}
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
@@ -14,6 +19,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 class MentionServiceImplSpec extends TestKit(ActorSystem()) with AnyWordSpecLike with Matchers with ScalaFutures {
 
@@ -59,8 +65,25 @@ class MentionServiceImplSpec extends TestKit(ActorSystem()) with AnyWordSpecLike
           )
         }
 
-      val mentionService = new MentionServiceImpl(mentionListUseCase)
-      val mentionReply   = mentionService.list(MentionListRequest(accountId = 1)).futureValue
+      val authenticationRepository = new AuthenticationRepository {
+        def resolve(accountId: AccountId): Future[Either[Throwable, Authentication]] = Future {
+          Right(Authentication(AccountId(1), ApiToken(""), AccessToken("token")))
+        }
+        def issueAccessToken(authentication: Authentication): Future[Try[AccessToken]] = ???
+      }
+
+      val metadata = new Metadata {
+        override def getText(key: String): Option[String] = key match {
+          case "X-Authorization" => Some("token")
+          case _ => None
+        }
+        override def getBinary(key: String): Option[ByteString] = ???
+        override def asMap: Map[String, List[MetadataEntry]] = ???
+        override def asList: List[(String, MetadataEntry)] = ???
+      }
+
+      val mentionService = new MentionServiceImpl(mentionListUseCase, authenticationRepository)
+      val mentionReply   = mentionService.list(MentionListRequest(accountId = 1), metadata).futureValue
 
       val expect = MentionListReply(
         Vector(

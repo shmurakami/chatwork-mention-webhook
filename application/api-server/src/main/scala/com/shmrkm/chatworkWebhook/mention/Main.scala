@@ -45,16 +45,18 @@ object Main extends MentionRepositoryFactory {
     val grpcInterface = config.getString("chatwork-mention-webhook.grpc-server.host")
     val grpcPort = config.getInt("chatwork-mention-webhook.grpc-server.port")
 
+    val authenticationRepository = new AuthenticationRepositoryImpl(new RedisClient(config.getString("redis.host"), config.getInt("redis.port")))
+
     val authenticationService = AuthenticationServiceHandler.partial(
       AuthenticationServiceImpl(
         new AccessTokenGeneratorImpl(),
         new ChatworkApiRepositoryImpl(config.getString("chatwork.api.url")),
-        new AuthenticationRepositoryImpl(new RedisClient(config.getString("redis.host"), config.getInt("redis.port")))
+        authenticationRepository
       )
     )
 
-    val mentionService = MentionServicePowerApiHandler.partial(new MentionServiceImpl(mentionListUseCase))
-    val mentionSubscribeService = MentionSubscribeServicePowerApiHandler.partial(new MentionSubscribeServiceImpl)
+    val mentionService = MentionServicePowerApiHandler.partial(new MentionServiceImpl(mentionListUseCase, authenticationRepository))
+    val mentionSubscribeService = MentionSubscribeServicePowerApiHandler.partial(new MentionSubscribeServiceImpl(null, authenticationRepository))
     val helloService = HelloServiceHandler.partial(new HelloServiceImpl)
     val service        = ServiceHandler.concatOrNotFound(authenticationService, mentionService, mentionSubscribeService, helloService)
     val grpcBindingFuture = Http().bindAndHandleAsync(

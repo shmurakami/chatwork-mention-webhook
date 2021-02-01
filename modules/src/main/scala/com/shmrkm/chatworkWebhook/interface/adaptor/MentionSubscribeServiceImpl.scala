@@ -3,16 +3,17 @@ package com.shmrkm.chatworkWebhook.interface.adaptor
 import akka.NotUsed
 import akka.grpc.scaladsl.Metadata
 import akka.stream.scaladsl.Source
-import com.shmrkm.chatworkMention.repository.{MentionStreamRepositoryFactory, StreamConsumer}
+import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, MentionStreamRepositoryFactory, StreamConsumer}
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
 import org.reactivestreams.{Publisher, Subscriber}
 
 import scala.concurrent.ExecutionContext
 
-class MentionSubscribeServiceImpl(publisher: Publisher[String] = null)(implicit val ec: ExecutionContext)
+class MentionSubscribeServiceImpl(publisher: Publisher[String] = null, override implicit val authenticationRepository: AuthenticationRepository)(implicit val ec: ExecutionContext)
     extends MentionSubscribeServicePowerApi
     with MentionStreamRepositoryFactory
-    with MentionServiceReplier {
+    with MentionServiceReplier
+    with TokenAuthorizer {
 
   override def subscribe(in: MentionSubscribeRequest, metadata: Metadata): Source[MentionReply, NotUsed] = {
     Source.fromPublisher(resolvePublisher).map { message =>
@@ -46,5 +47,4 @@ class MentionSubscribeServiceImpl(publisher: Publisher[String] = null)(implicit 
       case p    => p
     }
   }
-
 }

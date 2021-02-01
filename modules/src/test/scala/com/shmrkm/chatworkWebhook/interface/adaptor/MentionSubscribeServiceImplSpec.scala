@@ -3,18 +3,22 @@ package com.shmrkm.chatworkWebhook.interface.adaptor
 import akka.actor.ActorSystem
 import akka.stream.scaladsl.Sink
 import akka.testkit.TestKit
-import com.shmrkm.chatworkWebhook.domain.model.account.{ AccountId, AccountName, FromAccountAvatarUrl }
-import com.shmrkm.chatworkWebhook.domain.model.message.{ MessageBody, MessageId, SendTime, UpdateTime }
+import com.shmrkm.chatworkMention.repository.AuthenticationRepository
+import com.shmrkm.chatworkWebhook.domain.model.account.{AccountId, AccountName, FromAccountAvatarUrl}
+import com.shmrkm.chatworkWebhook.domain.model.auth.{AccessToken, Authentication}
+import com.shmrkm.chatworkWebhook.domain.model.chatwork.ApiToken
+import com.shmrkm.chatworkWebhook.domain.model.message.{MessageBody, MessageId, SendTime, UpdateTime}
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
-import com.shmrkm.chatworkWebhook.domain.model.room.{ RoomIconUrl, RoomId, RoomName }
-import org.reactivestreams.{ Publisher, Subscriber }
-import org.scalatest.concurrent.PatienceConfiguration.{ Interval, Timeout }
+import com.shmrkm.chatworkWebhook.domain.model.room.{RoomIconUrl, RoomId, RoomName}
+import org.reactivestreams.{Publisher, Subscriber}
+import org.scalatest.concurrent.PatienceConfiguration.{Interval, Timeout}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.time.{ Seconds, Span }
+import org.scalatest.time.{Seconds, Span}
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 class MentionSubscribeServiceImplSpec
     extends TestKit(ActorSystem())
@@ -53,7 +57,14 @@ class MentionSubscribeServiceImplSpec
         }
       }
 
-      val subscribeService = new MentionSubscribeServiceImpl(publisher)
+      val authenticationRepository = new AuthenticationRepository {
+        def resolve(accountId: AccountId): Future[Either[Throwable, Authentication]] = Future {
+          Right(Authentication(AccountId(1), ApiToken(""), AccessToken("token")))
+        }
+        def issueAccessToken(authentication: Authentication): Future[Try[AccessToken]] = ???
+      }
+
+      val subscribeService = new MentionSubscribeServiceImpl(publisher, authenticationRepository)
 
       val source       = subscribeService.subscribe(MentionSubscribeRequest(accountId = 1))
       val mentionReply = source.runWith(Sink.head).futureValue(Timeout(Span(5L, Seconds)), Interval(Span(1L, Seconds)))
