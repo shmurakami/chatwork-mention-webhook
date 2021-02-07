@@ -16,7 +16,7 @@ import org.reactivestreams.{Publisher, Subscriber}
 import org.scalatest.concurrent.PatienceConfiguration.{Interval, Timeout}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.time.{Seconds, Span}
+import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -43,44 +43,48 @@ class MentionSubscribeServiceImplSpec
   )
 
   "MentionSubscribeService" should {
+    import io.circe.generic.auto._
+    import io.circe.syntax._
+
+    implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+
+    val publisher: Publisher[String] = new Publisher[String] {
+      override def subscribe(s: Subscriber[_ >: String]): Unit = {
+        // give json string will be parsed to object and then reply
+        val queryMessageAsString = queryMessage.asJson.noSpaces
+        s.onNext(queryMessageAsString)
+
+        s.onComplete()
+      }
+    }
+
+    val authenticationRepository = new AuthenticationRepository {
+      def resolve(accountId: AccountId): Future[Either[Throwable, Authentication]] = Future {
+        Right(Authentication(AccountId(1), ApiToken(""), AccessToken("token")))
+      }
+      def issueAccessToken(authentication: Authentication): Future[Try[AccessToken]] = ???
+    }
+
+    trait PartialMetadata {
+      def getBinary(key: String): Option[ByteString] = ???
+      def asMap: Map[String, List[MetadataEntry]] = ???
+      def asList: List[(String, MetadataEntry)] = ???
+    }
+
     "return stream of new mention" in {
-      import io.circe.generic.auto._
-      import io.circe.syntax._
-
-      implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
-
-      val publisher: Publisher[String] = new Publisher[String] {
-        override def subscribe(s: Subscriber[_ >: String]): Unit = {
-          // give json string will be parsed to object and then reply
-          val queryMessageAsString = queryMessage.asJson.noSpaces
-          s.onNext(queryMessageAsString)
-
-          s.onComplete()
-        }
-      }
-
-      val authenticationRepository = new AuthenticationRepository {
-        def resolve(accountId: AccountId): Future[Either[Throwable, Authentication]] = Future {
-          Right(Authentication(AccountId(1), ApiToken(""), AccessToken("token")))
-        }
-        def issueAccessToken(authentication: Authentication): Future[Try[AccessToken]] = ???
-      }
 
       val subscribeService = new MentionSubscribeServiceImpl(publisher, authenticationRepository)
 
       val token = "token"
-      val metadata = new Metadata {
+      val metadata = new Metadata with PartialMetadata {
         override def getText(key: String): Option[String] = key match {
-          case "X-Authentication" => Some(token)
+          case "X-Authorization" => Some(token)
           case _ => None
         }
-        override def getBinary(key: String): Option[ByteString] = ???
-        override def asMap: Map[String, List[MetadataEntry]] = ???
-        override def asList: List[(String, MetadataEntry)] = ???
       }
 
       val source       = subscribeService.subscribe(MentionSubscribeRequest(accountId = 1), metadata)
-      val mentionReply = source.runWith(Sink.head).futureValue(Timeout(Span(5L, Seconds)), Interval(Span(1L, Seconds)))
+      val mentionReply = source.runWith(Sink.head).futureValue(Timeout(Span(5L, Seconds)), Interval(Span(300L, Millis)))
       val expect = MentionReply(
         id = "1",
         roomId = 2L,
@@ -96,6 +100,18 @@ class MentionSubscribeServiceImplSpec
       )
       mentionReply shouldEqual expect
     }
+
+    "return error if authentication token is invalid" in {
+      val subscribeService = new MentionSubscribeServiceImpl(publisher, authenticationRepository)
+
+      val metadata = new Metadata with PartialMetadata {
+        override def getText(key: String): Option[String] = None
+      }
+
+      val source = subscribeService.subscribe(MentionSubscribeRequest(accountId = 1), metadata)
+      source.toString.contains("FailedSource") shouldBe true
+    }
+
   }
 
 }

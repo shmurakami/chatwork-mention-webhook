@@ -1,15 +1,19 @@
 package com.shmrkm.chatworkWebhook.interface.adaptor
 
+import java.util.concurrent.TimeoutException
+
 import akka.NotUsed
 import akka.grpc.scaladsl.Metadata
 import akka.stream.scaladsl.Source
 import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, MentionStreamRepositoryFactory, StreamConsumer}
+import com.shmrkm.chatworkWebhook.auth.exception.AuthenticationFailureException
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
+import com.shmrkm.chatworkWebhook.domain.model.auth.Authentication
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
 import org.reactivestreams.{Publisher, Subscriber}
 
-import scala.concurrent.ExecutionContext
-import scala.util.{Failure, Success, Try}
+import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext}
 
 class MentionSubscribeServiceImpl(publisher: Publisher[String] = null, override implicit val authenticationRepository: AuthenticationRepository)(implicit val ec: ExecutionContext)
     extends MentionSubscribeServicePowerApi
@@ -18,14 +22,24 @@ class MentionSubscribeServiceImpl(publisher: Publisher[String] = null, override 
     with TokenAuthorizer {
 
   override def subscribe(in: MentionSubscribeRequest, metadata: Metadata): Source[MentionReply, NotUsed] = {
-    Try(authorize(AccountId(in.accountId), TokenAuthenticationMetadata(metadata).token)) match {
-      case Success(_) => execute(in)
-      case Failure(ex) => Source.failed(ex)
+    val authFuture = authorize(AccountId(in.accountId), TokenAuthenticationMetadata(metadata).token)
+
+    try {
+      // FIXME blocking is bad approach. how to do Future authentication and then return Source?
+      Await.result(authFuture, 3 seconds) match {
+        case _: Authentication => execute(in)
+        case _ => Source.failed(AuthenticationFailureException())
+      }
+    } catch {
+      case _: TimeoutException => Source.failed(AuthenticationFailureException())
+      case ex: AuthenticationFailureException => Source.failed(ex)
     }
   }
 
   private def execute(in: MentionSubscribeRequest): Source[MentionReply, NotUsed] = {
-    Source.fromPublisher(resolvePublisher).map { message =>
+    // TODO filter by in.accountId
+    Source.fromPublisher(resolvePublisher)
+      .map { message =>
       import io.circe.generic.auto._
       import io.circe.parser._
       decode[QueryMessage](message) match {
