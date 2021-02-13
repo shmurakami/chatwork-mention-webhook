@@ -7,7 +7,6 @@ import com.shmrkm.chatworkWebhook.mention.protocol.query.MentionQuery
 import com.shmrkm.chatworkWebhook.mention.usecase.MentionListUseCase
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
 
 class MentionServiceImpl(mentionListUseCase: MentionListUseCase, override implicit val authenticationRepository: AuthenticationRepository)(implicit val ec: ExecutionContext)
     extends MentionServicePowerApi
@@ -15,9 +14,9 @@ class MentionServiceImpl(mentionListUseCase: MentionListUseCase, override implic
     with TokenAuthorizer {
 
   override def list(in: MentionListRequest, metadata: Metadata): Future[MentionListReply] = {
-    Try(authorize(AccountId(in.accountId), TokenAuthenticationMetadata(metadata).token)) match {
-      case Success(_) => execute(in)
-      case Failure(ex) => Future.failed(ex)
+    authorize(AccountId(in.accountId), TokenAuthenticationMetadata(metadata).token).flatMap {
+      case Right(_) => execute(in)
+      case Left(ex) => Future.failed(ex)
     }
   }
 

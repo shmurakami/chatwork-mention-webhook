@@ -10,16 +10,16 @@ import scala.concurrent.{ExecutionContext, Future}
 trait TokenAuthorizer {
   implicit def authenticationRepository: AuthenticationRepository
 
-  def authorize(accountId: AccountId, token: Option[AccessToken])(implicit ec: ExecutionContext): Future[Authentication] = {
+  def authorize(accountId: AccountId, token: Option[AccessToken])(implicit ec: ExecutionContext): Future[Either[Throwable, Authentication]] = {
     token match {
-      case None => Future.failed(AuthenticationFailureException())
+      case None => Future { Left(AuthenticationFailureException()) }
       case Some(token) => {
-        authenticationRepository.resolve(accountId).flatMap {
+        authenticationRepository.resolve(accountId).map {
           case Right(authentication)
               if authentication.accountId == accountId && authentication.accessToken.value == token.value =>
-            Future.successful(authentication)
-          case Right(_)            => Future.failed(AuthenticationFailureException())
-          case Left(ex: Throwable) => Future.failed(AuthenticationFailureException())
+            Right(authentication)
+          case Right(_)            => Left(AuthenticationFailureException())
+          case Left(ex: Throwable) => Left(AuthenticationFailureException())
         }
       }
     }

@@ -1,19 +1,14 @@
 package com.shmrkm.chatworkWebhook.interface.adaptor
 
-import java.util.concurrent.TimeoutException
-
 import akka.NotUsed
 import akka.grpc.scaladsl.Metadata
 import akka.stream.scaladsl.Source
 import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, MentionStreamRepositoryFactory, StreamConsumer}
-import com.shmrkm.chatworkWebhook.auth.exception.AuthenticationFailureException
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
-import com.shmrkm.chatworkWebhook.domain.model.auth.Authentication
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
 import org.reactivestreams.{Publisher, Subscriber}
 
-import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext}
+import scala.concurrent.ExecutionContext
 
 class MentionSubscribeServiceImpl(publisher: Publisher[String] = null, override implicit val authenticationRepository: AuthenticationRepository)(implicit val ec: ExecutionContext)
     extends MentionSubscribeServicePowerApi
@@ -21,19 +16,25 @@ class MentionSubscribeServiceImpl(publisher: Publisher[String] = null, override 
     with MentionServiceReplier
     with TokenAuthorizer {
 
-  override def subscribe(in: MentionSubscribeRequest, metadata: Metadata): Source[MentionReply, NotUsed] = {
-    val authFuture = authorize(AccountId(in.accountId), TokenAuthenticationMetadata(metadata).token)
+  case class SubscribeRequest(payload: MentionSubscribeRequest, metadata: Metadata)
 
-    try {
-      // FIXME blocking is bad approach. how to do Future authentication and then return Source?
-      Await.result(authFuture, 3 seconds) match {
-        case _: Authentication => execute(in)
-        case _ => Source.failed(AuthenticationFailureException())
-      }
-    } catch {
-      case _: TimeoutException => Source.failed(AuthenticationFailureException())
-      case ex: AuthenticationFailureException => Source.failed(ex)
-    }
+  override def subscribe(in: MentionSubscribeRequest, metadata: Metadata): Source[MentionReply, NotUsed] = {
+    Source.single(SubscribeRequest(in, metadata))
+      .mapAsyncUnordered(1) { request => {
+        authorize(AccountId(in.accountId), TokenAuthenticationMetadata(metadata).token).map {
+          case Left(ex) => {
+            println("throw", ex)
+            throw ex
+          }
+          case Right(_) => request
+        }
+      }}
+      .flatMapMerge(breadth = 1, { request =>
+        execute(request.payload)
+      })
+//      .recoverWithRetries(attempts = 1, {
+//        case ex => Source.failed(ex)
+//      })
   }
 
   private def execute(in: MentionSubscribeRequest): Source[MentionReply, NotUsed] = {

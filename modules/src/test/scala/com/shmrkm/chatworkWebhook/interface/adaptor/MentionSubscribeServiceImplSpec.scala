@@ -6,6 +6,7 @@ import akka.stream.scaladsl.Sink
 import akka.testkit.TestKit
 import akka.util.ByteString
 import com.shmrkm.chatworkMention.repository.AuthenticationRepository
+import com.shmrkm.chatworkWebhook.auth.exception.AuthenticationFailureException
 import com.shmrkm.chatworkWebhook.domain.model.account.{AccountId, AccountName, FromAccountAvatarUrl}
 import com.shmrkm.chatworkWebhook.domain.model.auth.{AccessToken, Authentication}
 import com.shmrkm.chatworkWebhook.domain.model.chatwork.ApiToken
@@ -13,7 +14,6 @@ import com.shmrkm.chatworkWebhook.domain.model.message.{MessageBody, MessageId, 
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
 import com.shmrkm.chatworkWebhook.domain.model.room.{RoomIconUrl, RoomId, RoomName}
 import org.reactivestreams.{Publisher, Subscriber}
-import org.scalatest.concurrent.PatienceConfiguration.{Interval, Timeout}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.time.{Millis, Seconds, Span}
@@ -41,6 +41,8 @@ class MentionSubscribeServiceImplSpec
     sendTime = SendTime(0),
     updateTime = UpdateTime(0)
   )
+
+  implicit val pc = PatienceConfig(timeout = Span(5L, Seconds), interval = Span(300L, Millis))
 
   "MentionSubscribeService" should {
     import io.circe.generic.auto._
@@ -84,7 +86,7 @@ class MentionSubscribeServiceImplSpec
       }
 
       val source       = subscribeService.subscribe(MentionSubscribeRequest(accountId = 1), metadata)
-      val mentionReply = source.runWith(Sink.head).futureValue(Timeout(Span(5L, Seconds)), Interval(Span(300L, Millis)))
+      val mentionReply = source.runWith(Sink.head).futureValue
       val expect = MentionReply(
         id = "1",
         roomId = 2L,
@@ -109,7 +111,8 @@ class MentionSubscribeServiceImplSpec
       }
 
       val source = subscribeService.subscribe(MentionSubscribeRequest(accountId = 1), metadata)
-      source.toString.contains("FailedSource") shouldBe true
+
+      source.runWith(Sink.head).failed.futureValue shouldBe a[AuthenticationFailureException]
     }
 
   }
