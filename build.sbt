@@ -2,10 +2,12 @@ import Settings._
 import AkkaSettings._
 import DockerSettings._
 import SbtAssembly._
+import sbt.Keys.scalaVersion
 
 val `domain` = (project in file("domain"))
   .settings(
-    name := "domain"
+    name := "domain",
+    scalaVersion := myScalaVersion,
   )
 
 val `interface` = (project in file("interface"))
@@ -89,6 +91,7 @@ val `api-server` = (project in file("application/api-server"))
   .settings(assemblyCommonSettings)
   .settings(
     name := "api-server",
+    scalaVersion := myScalaVersion,
     mainClass in assembly := Some("com.shmrkm.chatworkWebhook.mention.Main"),
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http"   % akkaHttpVersion,
@@ -123,6 +126,7 @@ val `read-model-updater` = (project in file("application/read-model-updater"))
   .settings(assemblyCommonSettings)
   .settings(
     name := "read-model-updater",
+    scalaVersion := myScalaVersion,
     mainClass in assembly := Some("com.shmrkm.chatworkWebhook.readModelUpdater.Main"),
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-stream" % AkkaSettings.akkaStreamVersion,
@@ -146,6 +150,7 @@ val `read-model-updater` = (project in file("application/read-model-updater"))
 val root = (project in file("."))
   .settings(
     name := "chatwork-mention-webhook",
+    scalaVersion := myScalaVersion,
   )
   .aggregate(
     `domain`,
