@@ -12,20 +12,18 @@ import scala.concurrent.{ExecutionContext, Future}
 object Main extends App {
   Kamon.init()
 
-  override def main(args: Array[String]): Unit = {
-    val config = ConfigFactory.load()
+  val config = ConfigFactory.load()
 
-    implicit val system               = ActorSystem("read-model-updater", config)
-    implicit val ec: ExecutionContext = system.dispatcher
+  implicit val system               = ActorSystem("read-model-updater", config)
+  implicit val ec: ExecutionContext = system.dispatcher
 
-    val subscriber = system.actorOf(MessageSubscriberProxy.props, MessageSubscriberProxy.name)
-    subscriber ! Start()
+  val subscriber = system.actorOf(MessageSubscriberProxy.props, MessageSubscriberProxy.name)
+  subscriber ! Start()
 
-    CoordinatedShutdown(system).addTask(CoordinatedShutdown.PhaseBeforeServiceUnbind, "shutdown RMU") { () =>
-      Future {
-        system.stop(subscriber)
-        Done.done()
-      }
+  CoordinatedShutdown(system).addTask(CoordinatedShutdown.PhaseBeforeServiceUnbind, "shutdown RMU") { () =>
+    Future {
+      system.stop(subscriber)
+      Done.done()
     }
   }
 

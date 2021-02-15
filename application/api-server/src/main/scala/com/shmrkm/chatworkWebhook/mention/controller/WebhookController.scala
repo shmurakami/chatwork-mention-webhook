@@ -14,6 +14,7 @@ import com.shmrkm.chatworkWebhook.mention.protocol.command.{MentionCommand, Webh
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.language.postfixOps
 
 class WebhookController(implicit system: ActorSystem) extends Controller {
 
