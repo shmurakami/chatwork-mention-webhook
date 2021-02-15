@@ -70,6 +70,7 @@ val `api-client` = (project in file("application/api-client"))
   .settings(baseSettings)
   .settings(
     name := "api-client",
+    scalaVersion := myScalaVersion,
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-core" % circeVersion,
       "io.circe" %% "circe-generic" % circeVersion,
