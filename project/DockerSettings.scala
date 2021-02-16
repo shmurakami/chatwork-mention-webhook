@@ -4,6 +4,6 @@ object DockerSettings {
 
   val dockerImageRepositoryURI: Option[String] = Some("561324354611.dkr.ecr.ap-northeast-1.amazonaws.com/chatwork-mention-webhook")
 
-  val applicationVersion = "0.1.2"
+  val applicationVersion = "0.1.5"
 
 }

@@ -4,6 +4,8 @@ import DockerSettings._
 import SbtAssembly._
 import sbt.Keys.scalaVersion
 
+scalaVersion := myScalaVersion
+
 val `domain` = (project in file("domain"))
   .settings(
     name := "domain",
