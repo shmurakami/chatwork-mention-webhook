@@ -10,7 +10,7 @@ import kamon.Kamon
 import scala.concurrent.{ExecutionContext, Future}
 
 object Main extends App {
-  Kamon.init()
+//  Kamon.init()
 
   val config = ConfigFactory.load()
 
