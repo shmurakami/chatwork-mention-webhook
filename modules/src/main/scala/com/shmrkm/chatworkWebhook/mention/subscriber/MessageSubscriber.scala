@@ -2,7 +2,7 @@ package com.shmrkm.chatworkWebhook.mention.subscriber
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import com.redis._
-import com.shmrkm.chatworkMention.repository.{AuthenticationRepositoryFactory, ChatworkApiClientFactory, MentionRepositoryFactory, MentionStreamRepositoryFactory}
+import com.shmrkm.chatworkMention.repository.{AuthenticationRepositoryFactory, ChatworkApiClientFactory, MentionRepositoryFactory, MentionStreamRepositoryFactory, StreamConsumer}
 import com.shmrkm.chatworkWebhook.actor.ChildLookup
 import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriber.{ConsumeError, ConsumedMessage}
 import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriberProxy.Start
@@ -38,25 +38,32 @@ class MessageSubscriber
 
   override def receive: Receive = {
     case _: Start =>
-      subscriberRepository.subscribe(subscriber)
+      subscriberRepository.subscribeWebhookFlow(subscriber)
 
     case cmd: Command =>
       context
         .child(MessageSubscriberWorker.name).fold(
           createAndForward(
-            MessageSubscriberWorker.props(factoryAuthenticationRepository(), factoryMentionRepository(), factoryChatworkApiClient()),
+            MessageSubscriberWorker.props(
+              authenticationRepository = factoryAuthenticationRepository(),
+              streamRepository = factoryStreamRepository(),
+              mentionRepository = factoryMentionRepository(),
+              chatworkApiRepository = factoryChatworkApiClient()),
             MessageSubscriberWorker.name
           )(cmd)
         )(forwardCmd(cmd))
   }
 
-  def subscriber: PubSubMessage => Unit = {
-    case S(channel: String, _) => log.info(s"redis channel $channel subscribed")
-    case U(channel: String, _) => log.info(s"unsubscribed redis channel $channel")
-    case M(origChannel: String, message: String) =>
-      self ! ConsumedMessage(message)
-    case E(ex) =>
+  def subscriber: StreamConsumer = new StreamConsumer {
+    override def onSubscribe(channel: String): Unit = log.info(s"redis channel $channel subscribed")
+
+    override def onUnsubscribe(channel: String): Unit = log.info(s"unsubscribed redis channel $channel")
+
+    override def onMessage(message: String): Unit = self ! ConsumedMessage(message)
+
+    override def onError(ex: Throwable): Unit = {
       log.error(s"subscribing error occurred $ex")
       self ! ConsumeError(ex)
+    }
   }
 }

@@ -1,7 +1,7 @@
 package com.shmrkm.chatworkWebhook.domain.model.query.message
 
 import com.shmrkm.chatworkWebhook.domain.model.account.{AccountId, AccountName, FromAccountAvatarUrl}
-import com.shmrkm.chatworkWebhook.domain.model.message.{MessageBody, MessageId, SendTime, UpdateTime}
+import com.shmrkm.chatworkWebhook.domain.model.message.{Message, MessageBody, MessageId, SendTime, UpdateTime}
 import com.shmrkm.chatworkWebhook.domain.model.room.{RoomIconUrl, RoomId, RoomName}
 
 case class QueryMessage(
@@ -16,4 +16,8 @@ case class QueryMessage(
     body: MessageBody,
     sendTime: SendTime,
     updateTime: UpdateTime
-)
+) {
+
+  def toMessage: Message = Message(id, roomId, fromAccountId, toAccountId, body, sendTime, updateTime)
+
+}

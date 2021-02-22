@@ -22,7 +22,7 @@ class MentionRecordActor(refTo: ActorRef) extends Actor with ActorLogging with M
   private val mentionRepository = factoryStreamRepository()
 
   override def receive: Receive = {
-    case Record(message) => refTo forward mentionRepository.publish(message).map {
+    case Record(message) => refTo forward mentionRepository.publishToWebhookFlow(message).map {
       case Success(_) => SuccessToStore()
       case Failure(ex: Throwable) => FailureToStore(ex)
     }

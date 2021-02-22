@@ -1,16 +1,26 @@
 import Settings._
+import AkkaSettings._
 import DockerSettings._
 import SbtAssembly._
+import sbt.Keys.scalaVersion
+
+scalaVersion := myScalaVersion
 
 val `domain` = (project in file("domain"))
   .settings(
-    name := "domain"
+    name := "domain",
+    scalaVersion := myScalaVersion,
   )
 
 val `interface` = (project in file("interface"))
   .settings(baseSettings)
   .settings(
     name := "interface",
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-core" % circeVersion,
+      "io.circe" %% "circe-generic" % circeVersion,
+      "io.circe" %% "circe-parser" % circeVersion,
+    ),
   )
   .dependsOn(
     `domain`
@@ -37,21 +47,45 @@ val `infrastructure` = (project in file("infrastructure"))
   )
 
 val `modules` = (project in file("modules"))
+  .enablePlugins(AkkaGrpcPlugin)
   .settings(baseSettings)
   .settings(
     name := "modules",
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-actor" % akkaVersion,
+      "com.typesafe.akka" %% "akka-discovery" % akkaVersion,
 
       "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test,
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
       "org.scalactic" %% "scalactic" % scalacticVersion % "test",
-    )
+    ),
+    akkaGrpcGeneratedSources := Seq(AkkaGrpc.Server, AkkaGrpc.Client),
+    akkaGrpcCodeGeneratorSettings += "server_power_apis"
   )
   .dependsOn(
     `domain`,
     `interface`,
     `infrastructure`,
+  )
+
+val `api-client` = (project in file("application/api-client"))
+  .settings(baseSettings)
+  .settings(
+    name := "api-client",
+    scalaVersion := myScalaVersion,
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-core" % circeVersion,
+      "io.circe" %% "circe-generic" % circeVersion,
+      "io.circe" %% "circe-parser" % circeVersion,
+      // https://mvnrepository.com/artifact/de.heikoseeberger/akka-http-circe
+      "de.heikoseeberger" %% "akka-http-circe" % akkaCirceVersion,
+    ),
+  )
+  .dependsOn(
+    `domain`,
+    `interface`,
+    `infrastructure`,
+    `modules`,
   )
 
 val `api-server` = (project in file("application/api-server"))
@@ -60,6 +94,7 @@ val `api-server` = (project in file("application/api-server"))
   .settings(assemblyCommonSettings)
   .settings(
     name := "api-server",
+    scalaVersion := myScalaVersion,
     mainClass in assembly := Some("com.shmrkm.chatworkWebhook.mention.Main"),
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http"   % akkaHttpVersion,
@@ -70,9 +105,12 @@ val `api-server` = (project in file("application/api-server"))
       "de.heikoseeberger" %% "akka-http-circe" % akkaCirceVersion,
     ),
     // docker
-    packageName in Docker := "shmurakami/chatwork-mention-webhook-api-server",
-    version in Docker := "0.0.1",
     dockerBaseImage := baseImage,
+    packageName in Docker := "api-server",
+    version in Docker := applicationVersion,
+    // how to set dynamically?
+    dockerExposedPorts := Seq(8080, 18080),
+    dockerRepository := dockerImageRepositoryURI,
     // java options
     javaOptions in Universal ++= Seq(
       "-server"
@@ -91,17 +129,19 @@ val `read-model-updater` = (project in file("application/read-model-updater"))
   .settings(assemblyCommonSettings)
   .settings(
     name := "read-model-updater",
+    scalaVersion := myScalaVersion,
     mainClass in assembly := Some("com.shmrkm.chatworkWebhook.readModelUpdater.Main"),
     libraryDependencies ++= Seq(
-      "com.typesafe.akka" %% "akka-stream" % akkaStreamVersion,
+      "com.typesafe.akka" %% "akka-stream" % AkkaSettings.akkaStreamVersion,
       "io.circe" %% "circe-core" % circeVersion,
       "io.circe" %% "circe-generic" % circeVersion,
       "io.circe" %% "circe-parser" % circeVersion,
     ),
     // docker
-    packageName in Docker := "shmurakami/chatwork-mention-webhook-read-model-updater",
-    version in Docker := "0.0.1",
-    dockerBaseImage := baseImage
+    dockerBaseImage := baseImage,
+    packageName in Docker := "read-model-updater",
+    dockerRepository := dockerImageRepositoryURI,
+    version in Docker := applicationVersion
   )
   .dependsOn(
     `domain`,
@@ -113,6 +153,7 @@ val `read-model-updater` = (project in file("application/read-model-updater"))
 val root = (project in file("."))
   .settings(
     name := "chatwork-mention-webhook",
+    scalaVersion := myScalaVersion,
   )
   .aggregate(
     `domain`,

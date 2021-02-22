@@ -7,7 +7,7 @@ import akka.http.scaladsl.server.Route
 import com.shmrkm.chatworkMention.accessToken.AccessTokenGenerator
 import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, AuthenticationRepositoryFactory, ChatworkApiClientFactory, ChatworkApiRepository}
 import com.shmrkm.chatworkWebhook.auth.AccessTokenGeneratorImpl
-import com.shmrkm.chatworkWebhook.auth.usecase.AuthenticationUseCase
+import com.shmrkm.chatworkWebhook.auth.usecase.AuthenticationUseCaseImpl
 import com.shmrkm.chatworkWebhook.mention.protocol.command._
 import com.typesafe.scalalogging.Logger
 
@@ -51,7 +51,7 @@ class AuthenticationController(implicit val system: ActorSystem)
     }
 
   def execute(request: AuthenticationCommand): Future[AuthenticationResponse] = {
-    val useCase = new AuthenticationUseCase(accessTokenGenerator, chatworkApiRepository, authenticationRepository)
+    val useCase = new AuthenticationUseCaseImpl(accessTokenGenerator, chatworkApiRepository, authenticationRepository)
     useCase.execute(request).map {
       case Success(accessToken)   => SuccessAuthenticationResponse(account_id = request.account_id, token = accessToken)
       case Failure(ex: Throwable) => FailureAuthenticationResponse(ex.getMessage)

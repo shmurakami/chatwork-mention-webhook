@@ -1,29 +1,17 @@
 package com.shmrkm.chatworkMention.repository
 
 import akka.Done
-import com.redis.{PubSubMessage, _}
+import com.redis._
 import com.shmrkm.chatworkMention.exception.StoreException
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
 import com.shmrkm.chatworkWebhook.domain.model.message.Message
+import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
 import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.Logger
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
-
-trait StreamRepository {
-  def publish(message: Message): Future[Try[Boolean]]
-
-  def subscribe(consumer: PubSubMessage => Unit): Unit
-}
-
-trait MentionRepository {
-  def resolve(accountId: AccountId): Future[MentionList]
-  def fetch(accountId: AccountId): Future[MentionList]
-
-  def updateReadModel(toAccountId: AccountId, mentionList: MentionList): Try[Done]
-}
 
 class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: ExecutionContext) extends StreamRepository with MentionRepository {
 
@@ -34,9 +22,8 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
   private val logger = Logger(classOf[MentionRepository]);
   private val config = ConfigFactory.load("redis")
 
-  override def publish(message: Message): Future[Try[Boolean]] = Future {
-    val channelName = resolveStreamChannelName()
-    val result = redisClient.publish(channelName, message.asJson.noSpaces) match {
+  override def publish(channel: String, message: String): Future[Try[Boolean]] = Future {
+    val result = redisClient.publish(channel, message) match {
       case Some(_) => Success(true)
       case None => Failure(new StoreException("failed to publish to redis"))
     }
@@ -45,11 +32,23 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
     result
   }
 
-  override def subscribe(consumer: PubSubMessage => Unit): Unit = {
-    redisClient.subscribe(resolveStreamChannelName())(consumer)
+  override def publishToWebhookFlow(message: Message): Future[Try[Boolean]] = publish(resolveWebhookFlowStreamChannel(), message.asJson.noSpaces)
+  override def publishToPushNotification(message: QueryMessage): Future[Try[Boolean]] = publish(resolvePushNotificationStreamChannel(), message.asJson.noSpaces)
+
+  override def subscribe(channel: String, consumer: StreamConsumer): Unit = {
+    redisClient.subscribe(channel) {
+      case S(channel: String, _) => consumer.onSubscribe(channel)
+      case U(channel: String, _) => consumer.onUnsubscribe(channel)
+      case M(_, message: String) => consumer.onMessage(message)
+      case E(e: Throwable) => consumer.onError(e)
+    }
   }
 
-  private def resolveStreamChannelName(): String = config.getString("redis.channel-name")
+  override def subscribeWebhookFlow(consumer: StreamConsumer): Unit = subscribe(resolveWebhookFlowStreamChannel(), consumer)
+  override def subscribePushNotification(consumer: StreamConsumer): Unit = subscribe(resolvePushNotificationStreamChannel(), consumer)
+
+  private def resolveWebhookFlowStreamChannel(): String = config.getString("redis.webhook-flow-stream-channel")
+  private def resolvePushNotificationStreamChannel(): String = config.getString("redis.push-notification-stream-channel")
 
   override def fetch(accountId: AccountId): Future[MentionList] = {
     // TODO how to keep connection? need thread pool?
@@ -81,8 +80,8 @@ class MentionRepositoryRedisImpl(redisClient: RedisClient)(implicit ec: Executio
 
   override def updateReadModel(toAccountId: AccountId, mentionList: MentionList): Try[Done] = {
     // why mention list can be decoded by circe?
-    if (redisClient.set(readModelKey(toAccountId), mentionList.asJson.noSpaces)) Success(Done)
-    else Failure(new StoreException("failed to update read model"))
+    if (redisClient.set(readModelKey(toAccountId), mentionList.asJson.noSpaces)) Success(Done.done())
+    else Failure[Done](new StoreException("failed to update read model"))
   }
 
   private def readModelKey(accountId: AccountId): String = {
