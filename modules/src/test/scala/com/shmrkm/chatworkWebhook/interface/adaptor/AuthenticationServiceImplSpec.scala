@@ -26,7 +26,7 @@ class AuthenticationServiceImplSpec() extends AnyWordSpecLike with Matchers with
       reply shouldBe AuthenticationReply(accountId = 1, token = "valid")
     }
 
-    // TODO how to check exception thrown?
+    // TODO use intercept to check exception is thrown
 //    "throw exception" in {
 //      val authenticationUseCase: AuthenticationUseCase = (request: AuthenticationCommand) =>
 //        Future {

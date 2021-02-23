@@ -84,7 +84,6 @@ class MessageSubscriberSpec
 
       val messageJsonString = message.asJson.toString
 
-      // TODO refactor to pass IO client instead of RedisClient
       val streamRepository = new StreamRepository {
         override def publishToPushNotification(message: QueryMessage): Future[Try[Boolean]] = Future.successful(Success(true))
 
