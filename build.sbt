@@ -39,6 +39,8 @@ val `infrastructure` = (project in file("infrastructure"))
       "io.circe" %% "circe-parser" % circeVersion,
       "de.heikoseeberger" %% "akka-http-circe" % akkaCirceVersion,
       "net.debasishg" %% "redisclient" % redisClientVersion,
+
+      "com.github.sebruck" %% "scalatest-embedded-redis" % "0.4.0" % Test,
     )
   )
   .dependsOn(
@@ -58,6 +60,8 @@ val `modules` = (project in file("modules"))
       "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test,
       "org.scalatest" %% "scalatest" % scalaTestVersion % "test",
       "org.scalactic" %% "scalactic" % scalacticVersion % "test",
+
+      "com.github.sebruck" %% "scalatest-embedded-redis" % "0.4.0" % Test,
     ),
     akkaGrpcGeneratedSources := Seq(AkkaGrpc.Server, AkkaGrpc.Client),
     akkaGrpcCodeGeneratorSettings += "server_power_apis"
