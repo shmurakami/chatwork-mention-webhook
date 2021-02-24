@@ -3,7 +3,7 @@ package com.shmrkm.chatworkWebhook.mention.subscriber
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit}
 import com.redis.RedisClient
-import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, ChatworkApiRepository, MeResponse, MentionRepositoryRedisImpl, StreamConsumer, StreamRepository}
+import com.shmrkm.chatworkMention.repository._
 import com.shmrkm.chatworkWebhook.concerns.StopSystemAfterAll
 import com.shmrkm.chatworkWebhook.domain.model.account.{AccountId, AccountName, FromAccount, FromAccountAvatarUrl}
 import com.shmrkm.chatworkWebhook.domain.model.auth.{AccessToken, Authentication}
@@ -14,34 +14,36 @@ import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
 import com.shmrkm.chatworkWebhook.domain.model.room.{Room, RoomIconUrl, RoomId, RoomName}
 import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriber.ConsumedMessage
 import com.typesafe.config.ConfigFactory
-import org.scalatest.concurrent.PatienceConfiguration.{Interval, Timeout}
+import org.scalatest.concurrent.PatienceConfiguration.Timeout
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.time.{Millis, Seconds, Span}
+import org.scalatest.time.{Seconds, Span}
 import org.scalatest.wordspec.AnyWordSpecLike
+import redis.embedded.RedisServer
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
 import scala.language.postfixOps
 import scala.util.{Success, Try}
 
 object MessageSubscriberSpec {
-  val config = ConfigFactory.parseString("""
-                                           |redis {
-                                           |  host = "127.0.0.1"
-                                           |  port = 6379
-                                           |  channel-name = "spec"
-                                           |}
-                                           |chatwork {
-                                           |  api {
-                                           |    url: "https://api.chatwork.com/v2"
-                                           |    token = ""
-                                           |  }
-                                           |}
-                                           |""".stripMargin)
+  val config = ConfigFactory.parseString(
+    """
+      |redis {
+      |  host = "127.0.0.1"
+      |  port = 6379
+      |  channel-name = "spec"
+      |}
+      |chatwork {
+      |  api {
+      |    url: "https://api.chatwork.com/v2"
+      |    token = ""
+      |  }
+      |}
+      |""".stripMargin)
 }
 
-import MessageSubscriberSpec._
+import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriberSpec._
 
 class MessageSubscriberSpec
     extends TestKit(
@@ -60,14 +62,20 @@ class MessageSubscriberSpec
   val fromAccountId = AccountId(3L)
   val toAccountId   = AccountId(4L)
 
+  val redisServer = RedisServer.builder().setting("bind 127.0.0.1").build()
+  redisServer.start()
+
   override protected def afterAll(): Unit = {
     val redisClient = new RedisClient(config.getString("redis.host"), config.getInt("redis.port"))
     redisClient.del(readModelKey(toAccountId))
+
+    redisServer.stop()
 
     super.afterAll()
   }
 
   "subscriber" when {
+
     "got ConsumedMessage" should {
       import io.circe.generic.auto._
       import io.circe.syntax._
