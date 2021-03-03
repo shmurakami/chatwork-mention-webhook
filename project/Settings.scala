@@ -5,7 +5,7 @@ object Settings {
 
   val myScalaVersion = "2.13.4"
 
-  val circeVersion     = "0.12.3"
+  val circeVersion     = "0.13.0"
 
   val redisClientVersion = "3.20"
 
