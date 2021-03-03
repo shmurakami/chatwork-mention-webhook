@@ -18,7 +18,6 @@ import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 
 object Main extends App with MentionRepositoryFactory {
-//  Kamon.init()
   val config = ConfigFactory.load()
 
   implicit val system: ActorSystem = ActorSystem("mention-webhook", config)

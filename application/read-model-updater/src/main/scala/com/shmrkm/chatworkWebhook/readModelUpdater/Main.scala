@@ -5,12 +5,10 @@ import akka.actor.{ActorSystem, CoordinatedShutdown}
 import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriberProxy
 import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriberProxy.Start
 import com.typesafe.config.ConfigFactory
-import kamon.Kamon
 
 import scala.concurrent.{ExecutionContext, Future}
 
 object Main extends App {
-//  Kamon.init()
 
   val config = ConfigFactory.load()
 
