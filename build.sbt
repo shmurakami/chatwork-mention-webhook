@@ -1,7 +1,6 @@
 import Settings._
 import AkkaSettings._
 import DockerSettings._
-import SbtAssembly._
 import sbt.Keys.scalaVersion
 
 scalaVersion := myScalaVersion
@@ -95,11 +94,9 @@ val `api-client` = (project in file("application/api-client"))
 val `api-server` = (project in file("application/api-server"))
   .enablePlugins(DockerPlugin, JavaAppPackaging)
   .settings(baseSettings)
-  .settings(assemblyCommonSettings)
   .settings(
     name := "api-server",
     scalaVersion := myScalaVersion,
-    mainClass in assembly := Some("com.shmrkm.chatworkWebhook.mention.Main"),
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-http"   % akkaHttpVersion,
       "io.circe" %% "circe-core" % circeVersion,
@@ -130,11 +127,9 @@ val `api-server` = (project in file("application/api-server"))
 val `read-model-updater` = (project in file("application/read-model-updater"))
   .enablePlugins(DockerPlugin, JavaAppPackaging)
   .settings(baseSettings)
-  .settings(assemblyCommonSettings)
   .settings(
     name := "read-model-updater",
     scalaVersion := myScalaVersion,
-    mainClass in assembly := Some("com.shmrkm.chatworkWebhook.readModelUpdater.Main"),
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-stream" % AkkaSettings.akkaStreamVersion,
       "io.circe" %% "circe-core" % circeVersion,
