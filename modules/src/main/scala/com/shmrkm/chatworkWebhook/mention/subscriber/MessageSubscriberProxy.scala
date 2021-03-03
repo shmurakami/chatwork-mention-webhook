@@ -1,6 +1,6 @@
 package com.shmrkm.chatworkWebhook.mention.subscriber
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated}
+import akka.actor.{ Actor, ActorLogging, Props, Terminated }
 import com.shmrkm.chatworkWebhook.actor.ChildLookup
 import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriberProxy.Start
 
@@ -20,6 +20,7 @@ class MessageSubscriberProxy extends Actor with ActorLogging with ChildLookup {
     case cmd: Start =>
       val childRef = createChild(MessageSubscriber.props, MessageSubscriber.name)
       childRef forward cmd
+      // TODO make test to check supervisor works
       context.watch(childRef)
 
     case Terminated(_) => self ! Start

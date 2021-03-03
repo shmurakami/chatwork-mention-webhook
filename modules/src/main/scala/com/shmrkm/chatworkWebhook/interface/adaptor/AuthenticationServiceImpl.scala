@@ -1,14 +1,14 @@
 package com.shmrkm.chatworkWebhook.interface.adaptor
 
 import com.shmrkm.chatworkMention.accessToken.AccessTokenGenerator
-import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, ChatworkApiRepository}
-import com.shmrkm.chatworkWebhook.auth.usecase.{AuthenticationUseCase, AuthenticationUseCaseImpl}
+import com.shmrkm.chatworkMention.repository.{ AuthenticationRepository, ChatworkApiRepository }
+import com.shmrkm.chatworkWebhook.auth.usecase.{ AuthenticationUseCase, AuthenticationUseCaseImpl }
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
 import com.shmrkm.chatworkWebhook.domain.model.chatwork.ApiToken
 import com.shmrkm.chatworkWebhook.mention.protocol.command.AuthenticationCommand
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.util.{ Failure, Success }
 
 class AuthenticationServiceImpl(
     useCase: AuthenticationUseCase
@@ -31,6 +31,8 @@ object AuthenticationServiceImpl {
       chatworkApiRepository: ChatworkApiRepository,
       authenticationRepository: AuthenticationRepository
   )(implicit ec: ExecutionContext): AuthenticationService = {
-    new AuthenticationServiceImpl(new AuthenticationUseCaseImpl(accessTokenGenerator, chatworkApiRepository, authenticationRepository))
+    new AuthenticationServiceImpl(
+      new AuthenticationUseCaseImpl(accessTokenGenerator, chatworkApiRepository, authenticationRepository)
+    )
   }
 }

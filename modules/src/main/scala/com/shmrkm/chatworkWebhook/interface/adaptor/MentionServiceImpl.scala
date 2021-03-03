@@ -6,9 +6,12 @@ import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
 import com.shmrkm.chatworkWebhook.mention.protocol.query.MentionQuery
 import com.shmrkm.chatworkWebhook.mention.usecase.MentionListUseCase
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
-class MentionServiceImpl(mentionListUseCase: MentionListUseCase, override implicit val authenticationRepository: AuthenticationRepository)(implicit val ec: ExecutionContext)
+class MentionServiceImpl(
+    mentionListUseCase: MentionListUseCase,
+    override implicit val authenticationRepository: AuthenticationRepository
+)(implicit val ec: ExecutionContext)
     extends MentionServicePowerApi
     with MentionServiceReplier
     with TokenAuthorizer {

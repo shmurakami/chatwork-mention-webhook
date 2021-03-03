@@ -20,14 +20,17 @@ import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 object Main extends App with MentionRepositoryFactory {
   val config = ConfigFactory.load()
 
+  // TODO convert to typed
   implicit val system: ActorSystem = ActorSystem("mention-webhook", config)
   implicit val executionContext: ExecutionContextExecutor = system.dispatcher
 
   override implicit def ec: ExecutionContext = executionContext
 
+  // TODO refactor factory
   val mentionListUseCase = new MentionListUseCaseImpl(factoryMentionRepository())
 
   // TODO use airframe
+  // TODO remove http route
   val routes = new Routes(
     new AuthenticationController,
     new WebhookController,
@@ -69,6 +72,7 @@ object Main extends App with MentionRepositoryFactory {
     TimeUnit.MILLISECONDS
   )
 
+  // TODO check if it is correct
   CoordinatedShutdown(system).addTask(CoordinatedShutdown.PhaseBeforeServiceUnbind, "shutdown http server") { () =>
     Future {
       bindingFuture.flatMap(_.terminate(terminationDuration))

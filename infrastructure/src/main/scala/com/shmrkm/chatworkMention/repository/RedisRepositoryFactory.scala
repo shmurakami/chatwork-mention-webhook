@@ -5,6 +5,8 @@ import com.typesafe.config.ConfigFactory
 
 import scala.concurrent.ExecutionContext
 
+// TODO redis repository should be redis client to persist connection
+// maybe actor is more better
 private[repository] trait RedisRepositoryFactory {
   implicit def ec: ExecutionContext
 

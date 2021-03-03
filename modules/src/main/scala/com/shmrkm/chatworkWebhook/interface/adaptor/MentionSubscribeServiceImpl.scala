@@ -3,14 +3,22 @@ package com.shmrkm.chatworkWebhook.interface.adaptor
 import akka.NotUsed
 import akka.grpc.scaladsl.Metadata
 import akka.stream.scaladsl.Source
-import com.shmrkm.chatworkMention.repository.{AuthenticationRepository, MentionStreamRepositoryFactory, StreamConsumer}
+import com.shmrkm.chatworkMention.repository.{
+  AuthenticationRepository,
+  MentionStreamRepositoryFactory,
+  StreamConsumer
+}
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
-import org.reactivestreams.{Publisher, Subscriber}
+import org.reactivestreams.{ Publisher, Subscriber }
 
 import scala.concurrent.ExecutionContext
 
-class MentionSubscribeServiceImpl(publisher: Publisher[String] = null, override implicit val authenticationRepository: AuthenticationRepository)(implicit val ec: ExecutionContext)
+class MentionSubscribeServiceImpl(
+    // TODO it's strange to pass null
+    publisher: Publisher[String] = null,
+    override implicit val authenticationRepository: AuthenticationRepository
+)(implicit val ec: ExecutionContext)
     extends MentionSubscribeServicePowerApi
     with MentionStreamRepositoryFactory
     with MentionServiceReplier
@@ -19,36 +27,35 @@ class MentionSubscribeServiceImpl(publisher: Publisher[String] = null, override 
   case class SubscribeRequest(payload: MentionSubscribeRequest, metadata: Metadata)
 
   override def subscribe(in: MentionSubscribeRequest, metadata: Metadata): Source[MentionReply, NotUsed] = {
-    Source.single(SubscribeRequest(in, metadata))
-      .mapAsyncUnordered(1) { request => {
-        authorize(AccountId(in.accountId), TokenAuthenticationMetadata(metadata).token).map {
-          case Left(ex) => {
-            println("throw", ex)
-            throw ex
+    Source
+      .single(SubscribeRequest(in, metadata))
+      .mapAsyncUnordered(1) { request =>
+        {
+          authorize(AccountId(in.accountId), TokenAuthenticationMetadata(metadata).token).map {
+            case Left(ex) => {
+              println("throw", ex)
+              throw ex
+            }
+            case Right(_) => request
           }
-          case Right(_) => request
         }
-      }}
-      .flatMapMerge(breadth = 1, { request =>
-        execute(request.payload)
-      })
-//      .recoverWithRetries(attempts = 1, {
-//        case ex => Source.failed(ex)
-//      })
+      }
+      .flatMapMerge(breadth = 1, { request => execute(request.payload) })
   }
 
   private def execute(in: MentionSubscribeRequest): Source[MentionReply, NotUsed] = {
     // TODO filter by in.accountId
-    Source.fromPublisher(resolvePublisher)
+    Source
+      .fromPublisher(resolvePublisher)
       .map { message =>
-      import io.circe.generic.auto._
-      import io.circe.parser._
-      decode[QueryMessage](message) match {
-        // TODO check account ID. actually should subscribing filter with given account id
-        case Right(queryMessage) => queryMessage2MentionReply(queryMessage)
-        case Left(e)             => throw e
+        import io.circe.generic.auto._
+        import io.circe.parser._
+        decode[QueryMessage](message) match {
+          // TODO check account ID. actually should subscribing filter with given account id
+          case Right(queryMessage) => queryMessage2MentionReply(queryMessage)
+          case Left(e)             => throw e
+        }
       }
-    }
   }
 
   private def resolvePublisher: Publisher[String] = {

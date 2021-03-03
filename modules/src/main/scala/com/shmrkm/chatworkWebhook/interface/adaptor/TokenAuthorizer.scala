@@ -3,14 +3,17 @@ package com.shmrkm.chatworkWebhook.interface.adaptor
 import com.shmrkm.chatworkMention.repository.AuthenticationRepository
 import com.shmrkm.chatworkWebhook.auth.exception.AuthenticationFailureException
 import com.shmrkm.chatworkWebhook.domain.model.account.AccountId
-import com.shmrkm.chatworkWebhook.domain.model.auth.{AccessToken, Authentication}
+import com.shmrkm.chatworkWebhook.domain.model.auth.{ AccessToken, Authentication }
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 
 trait TokenAuthorizer {
   implicit def authenticationRepository: AuthenticationRepository
 
-  def authorize(accountId: AccountId, token: Option[AccessToken])(implicit ec: ExecutionContext): Future[Either[Throwable, Authentication]] = {
+  def authorize(accountId: AccountId, token: Option[AccessToken])(
+      implicit ec: ExecutionContext
+  ): Future[Either[Throwable, Authentication]] = {
+    // TODO refactoring
     token match {
       case None => Future { Left(AuthenticationFailureException()) }
       case Some(token) => {

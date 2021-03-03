@@ -3,6 +3,7 @@ package com.shmrkm.chatworkWebhook.interface.adaptor
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
 
 trait MentionServiceReplier {
+
   def queryMessage2MentionReply(queryMessage: QueryMessage): MentionReply = {
     MentionReply(
       id = queryMessage.id.value,

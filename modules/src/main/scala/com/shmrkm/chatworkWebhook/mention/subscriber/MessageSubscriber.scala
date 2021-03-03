@@ -1,9 +1,9 @@
 package com.shmrkm.chatworkWebhook.mention.subscriber
 
-import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
+import akka.actor.{ Actor, ActorLogging, ActorSystem, Props }
 import com.shmrkm.chatworkMention.repository._
 import com.shmrkm.chatworkWebhook.actor.ChildLookup
-import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriber.{ConsumeError, ConsumedMessage}
+import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriber.{ ConsumeError, ConsumedMessage }
 import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriberProxy.Start
 import com.typesafe.config.Config
 
@@ -47,7 +47,8 @@ class MessageSubscriber
               authenticationRepository = factoryAuthenticationRepository(),
               streamRepository = factoryStreamRepository(),
               mentionRepository = factoryMentionRepository(),
-              chatworkApiRepository = factoryChatworkApiClient()),
+              chatworkApiRepository = factoryChatworkApiClient()
+            ),
             MessageSubscriberWorker.name
           )(cmd)
         )(forwardCmd(cmd))

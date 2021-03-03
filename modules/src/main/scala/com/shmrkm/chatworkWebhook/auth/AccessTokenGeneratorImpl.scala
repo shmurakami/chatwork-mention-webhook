@@ -11,6 +11,7 @@ class AccessTokenGeneratorImpl extends AccessTokenGenerator {
 
   private def authKey(accountId: AccountId): AccessToken = {
     val tokenGenerator = new TokenGenerator
+    // TODO check it works. redis has key not converted?
     AccessToken(tokenGenerator.generateSHAToken(s"authentication-${accountId.value}"))
   }
 
