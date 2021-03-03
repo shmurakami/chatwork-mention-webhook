@@ -5,7 +5,7 @@ object Settings {
 
   val myScalaVersion = "2.13.4"
 
-  val circeVersion     = "0.12.3"
+  val circeVersion     = "0.13.0"
 
   val redisClientVersion = "3.20"
 
@@ -18,9 +18,9 @@ object Settings {
     scalaVersion := myScalaVersion,
     libraryDependencies ++= Seq(
         "ch.qos.logback"             % "logback-classic"     % "1.2.3",
-        "com.typesafe.scala-logging" %% "scala-logging"      % "3.9.2",
-        "io.kamon"                   %% "kamon-bundle"       % kamonVersion,
-        "io.kamon"                   %% "kamon-datadog"      % kamonVersion
+        "com.typesafe.scala-logging" %% "scala-logging"      % "3.9.2"
+//        "io.kamon"                   %% "kamon-bundle"       % kamonVersion,
+//        "io.kamon"                   %% "kamon-datadog"      % kamonVersion
       )
   )
 
