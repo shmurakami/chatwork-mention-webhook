@@ -1,21 +1,21 @@
 package com.shmrkm.chatworkWebhook.mention.subscriber
 
-import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
-import akka.stream.Materializer
-import akka.stream.scaladsl.{Flow, Keep, RestartSource, Sink, Source}
-import akka.{Done, NotUsed}
+import akka.actor.{ Actor, ActorLogging, ActorSystem, Props }
+import akka.stream.scaladsl.{ Flow, Keep, RestartSource, Sink, Source }
+import akka.stream.{ Materializer, RestartSettings }
+import akka.{ Done, NotUsed }
 import com.shmrkm.chatworkMention.repository._
 import com.shmrkm.chatworkWebhook.domain.model.chatwork.ApiToken
 import com.shmrkm.chatworkWebhook.domain.model.mention.MentionList
 import com.shmrkm.chatworkWebhook.domain.model.message.Message
 import com.shmrkm.chatworkWebhook.domain.model.query.message.QueryMessage
-import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriber.{ConsumeError, ConsumedMessage}
+import com.shmrkm.chatworkWebhook.mention.subscriber.MessageSubscriber.{ ConsumeError, ConsumedMessage }
 import com.typesafe.config.Config
 
 import scala.concurrent.duration._
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.language.postfixOps
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Success, Try }
 
 object MessageSubscriberWorker {
 
@@ -23,9 +23,18 @@ object MessageSubscriberWorker {
       authenticationRepository: AuthenticationRepository,
       streamRepository: StreamRepository,
       mentionRepository: MentionRepository,
-      chatworkApiRepository: ChatworkApiRepository
-  ) =
-    Props(new MessageSubscriberWorker(authenticationRepository, streamRepository, mentionRepository, chatworkApiRepository))
+      chatworkApiRepository: ChatworkApiRepository,
+      restartSettings: RestartSettings =
+        RestartSettings(minBackoff = 3 seconds, maxBackoff = 1 minute, randomFactor = 0.2).withMaxRestarts(5, 5 minute)
+  ) = Props(
+    new MessageSubscriberWorker(
+      authenticationRepository,
+      streamRepository,
+      mentionRepository,
+      chatworkApiRepository,
+      restartSettings
+    )
+  )
   def name = "message-subscriber-worker"
 }
 
@@ -33,7 +42,8 @@ class MessageSubscriberWorker(
     authRepository: AuthenticationRepository,
     streamRepository: StreamRepository,
     mentionRepository: MentionRepository,
-    chatworkApiRepository: ChatworkApiRepository
+    chatworkApiRepository: ChatworkApiRepository,
+    restartSettings: RestartSettings
 ) extends Actor
     with ActorLogging
     with MentionStreamRepositoryFactory {
@@ -56,31 +66,25 @@ class MessageSubscriberWorker(
   }
 
   def consumeFlow(message: ConsumedMessage): Future[Try[Done]] = {
-    val source =
-      RestartSource.withBackoff(minBackoff = 3 seconds, maxBackoff = 10 seconds, randomFactor = 0.2, maxRestarts = 3)(
-        () => Source.single(message)
-      )
-
-    source
-      .map { message => decode[Message](message.value).getOrElse(null) }
-      .via(retrieveInsufficientDataAndBuildMessage())
-      .via(publishToPushStream())
-      .via(appendMessage())
-      .via(updateReadModel())
+    RestartSource
+      .onFailuresWithBackoff(restartSettings) { () =>
+        Source
+          .single(message)
+          .map { message => decode[Message](message.value).getOrElse(null) }
+          .via(retrieveInsufficientDataAndBuildMessage())
+          .via(publishToPushStream())
+          .via(appendMessage())
+          .via(updateReadModel())
+      }
       .toMat(Sink.head)(Keep.right)
       .run()
-      .recover {
-        case e: Throwable =>
-          log.error(e.getMessage)
-          Failure[Done](e)
-      }
   }
 
   def retrieveInsufficientDataAndBuildMessage(): Flow[Message, QueryMessage, NotUsed] = {
     Flow[Message]
       .mapAsync(1) { message =>
         authRepository
-          // no need to check request token because this is internal access
+        // no need to check request token because this is internal access
           .resolve(message.toAccountId)
           .flatMap {
             case Left(_) => throw new RuntimeException("failed to resolve authentication")

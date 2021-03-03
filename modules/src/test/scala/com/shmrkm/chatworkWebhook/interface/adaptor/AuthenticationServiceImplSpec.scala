@@ -7,8 +7,8 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success, Try }
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Success
 
 class AuthenticationServiceImplSpec() extends AnyWordSpecLike with Matchers with ScalaFutures {
 
@@ -26,19 +26,17 @@ class AuthenticationServiceImplSpec() extends AnyWordSpecLike with Matchers with
       reply shouldBe AuthenticationReply(accountId = 1, token = "valid")
     }
 
-    // TODO use intercept to check exception is thrown
-//    "throw exception" in {
-//      val authenticationUseCase: AuthenticationUseCase = (request: AuthenticationCommand) =>
-//        Future {
-//          Failure(new Exception())
-//        }
-//      val authenticationService = new AuthenticationServiceImpl(authenticationUseCase)
-//      authenticationService
-//        .auth(AuthenticationRequest(accountId = 1, token = "token"))
-//        .recover {
-//          case ex => ex.getClass shouldBe classOf[Error]
-//        }
-//    }
+    "throw exception if fail to authenticate" in {
+      val authenticationUseCase: AuthenticationUseCase =
+        (request: AuthenticationCommand) => Future.failed(new Exception())
+      val authenticationService = new AuthenticationServiceImpl(authenticationUseCase)
+
+      intercept[Exception] {
+        authenticationService
+          .auth(AuthenticationRequest(accountId = 1, token = "token"))
+          .futureValue
+      }
+    }
   }
 
 }
